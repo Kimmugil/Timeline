@@ -52,7 +52,7 @@ async function callGemini(prompt: string): Promise<unknown> {
 // 공식 이벤트 → 타임라인 아이템 (AI 불필요, 직접 변환)
 export function forumPostsToTimelineItems(
   posts: ForumPost[],
-  gameId: number
+  gameId: string
 ): TimelineItem[] {
   const byDateType: Record<string, ForumPost[]> = {};
   for (const post of posts) {
@@ -105,7 +105,7 @@ export async function analyzeWeeklySummary(
   weekEnd: string,
   dcPosts: DcPost[],
   officialEvents: ForumPost[],
-  gameId: number
+  gameId: string
 ): Promise<TimelineItem | null> {
   if (dcPosts.length < 5) return null;
 
@@ -180,7 +180,7 @@ export async function analyzeEventReaction(
   eventDate: string,
   events: ForumPost[],
   dcPosts: DcPost[],
-  gameId: number
+  gameId: string
 ): Promise<TimelineItem | null> {
   if (dcPosts.length < 3 || events.length === 0) return null;
 
@@ -249,7 +249,7 @@ export async function detectUserIssues(
   fromDate: string,
   toDate: string,
   dcPosts: DcPost[],
-  gameId: number
+  gameId: string
 ): Promise<TimelineItem[]> {
   const highEngagement = dcPosts.filter(
     (p) => p.views >= 300 || p.comments >= 20 || p.likes >= 5
@@ -325,7 +325,7 @@ ${formatDcPosts(highEngagement, 50)}
 // 전체 AI 분석 오케스트레이션
 export async function generateTimeline(
   game: {
-    id: number;
+    id: string;
     name: string;
     dc_raw_sheet_id: string;
     dc_sheet_tab: string;

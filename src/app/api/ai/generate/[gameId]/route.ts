@@ -56,7 +56,7 @@ export async function POST(
     // 3. AI 분석 + 타임라인 생성
     const items = await generateTimeline(
       {
-        id: 0, // not used in gemini.ts logic
+        id: game.id,
         name: game.name,
         dc_raw_sheet_id: game.dc_raw_sheet_id,
         dc_sheet_tab: game.dc_sheet_tab,

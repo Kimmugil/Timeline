@@ -1,5 +1,5 @@
 export type GameConfig = {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   dc_raw_sheet_id: string;
@@ -20,7 +20,7 @@ export type TimelineItemType =
 
 export type TimelineItem = {
   id: string;
-  gameId: number;
+  gameId: string;
   date: string;
   type: TimelineItemType;
   title: string;
