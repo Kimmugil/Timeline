@@ -190,6 +190,9 @@ export default function TimelineChart({
 
         {hasMetrics && metricColumns.length > 0 && <Legend wrapperStyle={{ color: "#94a3b8", fontSize: 12 }} />}
 
+        {/* 이벤트 전용 모드: 더미 Y축 */}
+        {!hasMetrics && <YAxis yAxisId="events" hide domain={[0, 1]} />}
+
         {/* 이벤트 reference lines */}
         {eventDates.map((date) => {
           const events = eventsByDate[date];
@@ -198,7 +201,7 @@ export default function TimelineChart({
             <ReferenceLine
               key={date}
               x={date}
-              yAxisId={hasMetrics && primaryMetric ? "left" : undefined}
+              yAxisId={hasMetrics && primaryMetric ? "left" : "events"}
               stroke={TYPE_COLORS[dominantType]}
               strokeOpacity={selectedDate === date ? 1 : 0.4}
               strokeWidth={selectedDate === date ? 2 : 1}

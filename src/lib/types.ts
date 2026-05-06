@@ -18,6 +18,14 @@ export type TimelineItemType =
   | "weekly_summary"
   | "event_reaction";
 
+export type SourceLink = {
+  url: string;
+  title: string;
+  views?: number;
+  comments?: number;
+  likes?: number;
+};
+
 export type TimelineItem = {
   id: string;
   gameId: string;
@@ -26,7 +34,7 @@ export type TimelineItem = {
   title: string;
   summary: string;
   detail: string;
-  sourceLinks: string[];
+  sourceLinks: SourceLink[];
   evidenceCount: number;
   evidenceMetrics: {
     avgViews?: number;

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ForumPost, DcPost, TimelineItem } from "./types";
+import { ForumPost, DcPost, TimelineItem, SourceLink } from "./types";
 import {
   format,
   parseISO,
@@ -16,16 +16,15 @@ function getModel() {
 }
 
 function byEngagement(a: DcPost, b: DcPost) {
-  return b.views + b.comments * 5 + b.likes * 3 - (a.views + a.comments * 5 + a.likes * 3);
+  return (b.views + b.comments * 5 + b.likes * 3) - (a.views + a.comments * 5 + a.likes * 3);
 }
 
 function formatDcPosts(posts: DcPost[], max = 40): string {
   return [...posts]
     .sort(byEngagement)
     .slice(0, max)
-    .map(
-      (p) =>
-        `[조회:${p.views}/댓글:${p.comments}/추천:${p.likes}] ${p.date} - ${p.title}\n${p.body.slice(0, 200)}\n링크: ${p.link}`
+    .map((p) =>
+      `[조회:${p.views}/댓글:${p.comments}/추천:${p.likes}] ${p.date} - ${p.title}\n${p.body.slice(0, 200)}\n링크: ${p.link}`
     )
     .join("\n\n---\n\n");
 }
@@ -33,9 +32,8 @@ function formatDcPosts(posts: DcPost[], max = 40): string {
 function formatForumPosts(posts: ForumPost[]): string {
   const typeLabel = { patch: "패치노트", event: "이벤트", notice: "공지" };
   return posts
-    .map(
-      (p) =>
-        `[${typeLabel[p.type]}] ${p.date} - ${p.title}\n${p.body.slice(0, 300)}\n링크: ${p.link}`
+    .map((p) =>
+      `[${typeLabel[p.type]}] ${p.date} - ${p.title}\n${p.body.slice(0, 300)}\n링크: ${p.link}`
     )
     .join("\n\n---\n\n");
 }
@@ -49,7 +47,7 @@ async function callGemini(prompt: string): Promise<unknown> {
   return JSON.parse(match[0]);
 }
 
-// 공식 이벤트 → 타임라인 아이템 (AI 불필요, 직접 변환)
+// 공식 이벤트 → 타임라인 아이템 (AI 불필요)
 export function forumPostsToTimelineItems(
   posts: ForumPost[],
   gameId: string
@@ -70,25 +68,27 @@ export function forumPostsToTimelineItems(
   return Object.entries(byDateType).map(([key, datePosts]) => {
     const [date, rawType] = key.split("__");
     const type = typeMap[rawType as keyof typeof typeMap];
-    const titles = datePosts.map((p) => p.title);
     const label = { patch: "패치노트", event: "이벤트", notice: "공지" }[rawType];
+    const titles = datePosts.map((p) => p.title);
+
+    const sourceLinks: SourceLink[] = datePosts
+      .slice(0, 5)
+      .filter((p) => p.link)
+      .map((p) => ({ url: p.link, title: p.title, views: p.views, likes: p.likes }));
 
     return {
       id: `forum-${date}-${rawType}`,
       gameId,
       date,
       type,
-      title:
-        datePosts.length === 1
-          ? datePosts[0].title
-          : `${datePosts.length}개 ${label}`,
+      title: datePosts.length === 1 ? datePosts[0].title : `${datePosts.length}개 ${label}`,
       summary:
         titles.slice(0, 3).join(", ") +
         (titles.length > 3 ? ` 외 ${titles.length - 3}개` : ""),
       detail: datePosts
         .map((p) => `• ${p.title}\n${p.body.slice(0, 500)}`)
         .join("\n\n"),
-      sourceLinks: datePosts.map((p) => p.link).filter(Boolean),
+      sourceLinks,
       evidenceCount: 0,
       evidenceMetrics: null,
       relatedEventDate: null,
@@ -109,6 +109,8 @@ export async function analyzeWeeklySummary(
 ): Promise<TimelineItem | null> {
   if (dcPosts.length < 5) return null;
 
+  const sortedPosts = [...dcPosts].sort(byEngagement).slice(0, 40);
+
   const prompt = `당신은 게임 커뮤니티 분석가입니다.
 아래는 ${gameName} DC 갤러리 ${weekStart} ~ ${weekEnd} 기간 주요 게시글입니다.
 
@@ -116,19 +118,28 @@ export async function analyzeWeeklySummary(
 ${officialEvents.length > 0 ? formatForumPosts(officialEvents) : "없음"}
 
 [DC 갤러리 주요 게시글]
-${formatDcPosts(dcPosts, 40)}
+${formatDcPosts(sortedPosts, 40)}
 
 다음 JSON만 반환하세요 (다른 텍스트 없이):
 {
   "summary": "이 기간 유저 동향 요약 (200자 이내)",
   "main_topics": [{"topic": "토픽", "post_count": 숫자, "sentiment": "positive/negative/neutral"}],
   "official_event_reactions": [{"event_title": "이벤트명", "reaction": "반응 100자 이내", "confidence": "confirmed/estimated"}],
-  "overall_sentiment": "positive/negative/neutral/mixed"
+  "overall_sentiment": "positive/negative/neutral/mixed",
+  "top_posts": [
+    {"url": "게시글링크", "title": "게시글제목", "views": 조회수, "comments": 댓글수, "likes": 추천수}
+  ]
 }
 
-주의:
-- DC에서 직접 언급 시 confidence:"confirmed", 시점 유사성만 있으면 confidence:"estimated"
-- 근거 없는 추측 금지, official_event_reactions는 DC에서 실제 언급된 경우만`;
+[top_posts 규칙 - 반드시 준수]
+- 반드시 위에 제공된 게시글 목록에 있는 URL과 제목만 사용 (URL 변형/생성 절대 금지)
+- 이번 주 동향을 가장 잘 대표하는 게시글 1~5개만 선택
+- 조회수 또는 댓글수가 높고, 주간 이슈를 직접 다루는 게시글 우선
+- 제공되지 않은 URL은 절대 포함하지 말 것
+
+[추가 규칙]
+- DC에서 직접 언급 시 confidence:"confirmed", 시점 유사성만 있으면 "estimated"
+- 근거 없는 추측 금지`;
 
   try {
     const parsed = (await callGemini(prompt)) as {
@@ -136,17 +147,22 @@ ${formatDcPosts(dcPosts, 40)}
       main_topics: { topic: string; post_count: number; sentiment: string }[];
       official_event_reactions: { event_title: string; reaction: string; confidence: string }[];
       overall_sentiment: string;
+      top_posts?: { url: string; title: string; views: number; comments: number; likes: number }[];
     };
 
     const topicLines = (parsed.main_topics || [])
       .map((t) => `• ${t.topic} (${t.post_count}건, ${t.sentiment})`)
       .join("\n");
     const reactionLines = (parsed.official_event_reactions || [])
-      .map(
-        (r) =>
-          `• ${r.event_title}: ${r.reaction} [${r.confidence === "confirmed" ? "직접 언급 확인" : "추정"}]`
-      )
+      .map((r) => `• ${r.event_title}: ${r.reaction} [${r.confidence === "confirmed" ? "직접 언급 확인" : "추정"}]`)
       .join("\n");
+
+    // top_posts URL 검증 - 제공된 게시글에 있는 것만 허용
+    const validUrls = new Set(sortedPosts.map((p) => p.link));
+    const sourceLinks: SourceLink[] = (parsed.top_posts || [])
+      .filter((p) => p.url && validUrls.has(p.url))
+      .slice(0, 5)
+      .map((p) => ({ url: p.url, title: p.title, views: p.views, comments: p.comments, likes: p.likes }));
 
     return {
       id: `weekly-${weekStart}`,
@@ -158,10 +174,8 @@ ${formatDcPosts(dcPosts, 40)}
       detail: [
         topicLines ? `**주요 토픽**\n${topicLines}` : "",
         reactionLines ? `**공식 이벤트 반응**\n${reactionLines}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n"),
-      sourceLinks: [],
+      ].filter(Boolean).join("\n\n"),
+      sourceLinks,
       evidenceCount: dcPosts.length,
       evidenceMetrics: { postCount: dcPosts.length },
       relatedEventDate: null,
@@ -184,6 +198,8 @@ export async function analyzeEventReaction(
 ): Promise<TimelineItem | null> {
   if (dcPosts.length < 3 || events.length === 0) return null;
 
+  const sortedPosts = [...dcPosts].sort(byEngagement).slice(0, 30);
+
   const prompt = `당신은 게임 커뮤니티 분석가입니다.
 ${gameName}에서 ${eventDate}에 다음 공식 이벤트/공지가 발생했습니다.
 
@@ -193,7 +209,7 @@ ${formatForumPosts(events)}
 아래는 이벤트 전후 3일간 DC 갤러리 주요 게시글입니다:
 
 [DC 갤러리 게시글]
-${formatDcPosts(dcPosts, 30)}
+${formatDcPosts(sortedPosts, 30)}
 
 다음 JSON만 반환하세요 (다른 텍스트 없이):
 {
@@ -201,12 +217,20 @@ ${formatDcPosts(dcPosts, 30)}
   "sentiment": "positive/negative/neutral/mixed",
   "key_mentions": ["키워드1", "키워드2"],
   "direct_mentions": true 또는 false,
-  "confidence_note": "직접 언급 있음 OR 시점 유사성으로 추정"
+  "confidence_note": "직접 언급 있음 OR 시점 유사성으로 추정",
+  "top_posts": [
+    {"url": "게시글링크", "title": "게시글제목", "views": 조회수, "comments": 댓글수, "likes": 추천수}
+  ]
 }
 
-주의:
+[top_posts 규칙 - 반드시 준수]
+- 반드시 위에 제공된 게시글 목록에 있는 URL과 제목만 사용 (URL 변형/생성 절대 금지)
+- 해당 이벤트를 직접 언급하거나 명백히 반응한 게시글 1~5개만 선택
+- 이벤트와 관련 없는 게시글은 포함하지 말 것
+- direct_mentions가 false이면 top_posts는 빈 배열로
+
+[추가 규칙]
 - DC에서 이벤트를 직접 언급한 경우만 direct_mentions:true
-- 직접 언급 없으면 "~하는 것으로 보임" 형태로만 표현
 - 근거 없는 추측 금지`;
 
   try {
@@ -216,7 +240,14 @@ ${formatDcPosts(dcPosts, 30)}
       key_mentions: string[];
       direct_mentions: boolean;
       confidence_note: string;
+      top_posts?: { url: string; title: string; views: number; comments: number; likes: number }[];
     };
+
+    const validUrls = new Set(sortedPosts.map((p) => p.link));
+    const sourceLinks: SourceLink[] = (parsed.top_posts || [])
+      .filter((p) => p.url && validUrls.has(p.url))
+      .slice(0, 5)
+      .map((p) => ({ url: p.url, title: p.title, views: p.views, comments: p.comments, likes: p.likes }));
 
     return {
       id: `reaction-${eventDate}`,
@@ -226,7 +257,7 @@ ${formatDcPosts(dcPosts, 30)}
       title: `${eventDate} 이벤트 유저 반응`,
       summary: parsed.reaction_summary || "",
       detail: `신뢰도: ${parsed.confidence_note || ""}\n키워드: ${(parsed.key_mentions || []).join(", ")}`,
-      sourceLinks: [],
+      sourceLinks,
       evidenceCount: dcPosts.length,
       evidenceMetrics: {
         postCount: dcPosts.length,
@@ -256,11 +287,13 @@ export async function detectUserIssues(
   );
   if (highEngagement.length < 3) return [];
 
+  const sortedPosts = [...highEngagement].sort(byEngagement).slice(0, 50);
+
   const prompt = `당신은 게임 커뮤니티 분석가입니다.
 아래는 ${gameName} DC 갤러리 ${fromDate} ~ ${toDate} 기간 높은 참여도 게시글입니다.
 
 [게시글 목록]
-${formatDcPosts(highEngagement, 50)}
+${formatDcPosts(sortedPosts, 50)}
 
 유저 이슈(의혹, 분쟁, 강한 불만 집중 등)가 감지되면 분석하세요.
 
@@ -273,15 +306,23 @@ ${formatDcPosts(highEngagement, 50)}
       "evidence_post_count": 숫자,
       "avg_views": 숫자,
       "avg_comments": 숫자,
-      "source_links": ["링크1", "링크2"],
-      "start_date": "YYYY-MM-DD"
+      "start_date": "YYYY-MM-DD",
+      "top_posts": [
+        {"url": "게시글링크", "title": "게시글제목", "views": 조회수, "comments": 댓글수, "likes": 추천수}
+      ]
     }
   ]
 }
 
-주의:
+[top_posts 규칙 - 반드시 준수]
+- 반드시 위에 제공된 게시글 목록에 있는 URL과 제목만 사용 (URL 변형/생성 절대 금지)
+- 해당 이슈를 직접 다루는 게시글 1~5개만 선택
+- 조회수 1000 이상 또는 댓글 10개 이상인 게시글 우선
+- 제공되지 않은 URL은 절대 포함하지 말 것
+
+[이슈 감지 규칙]
 - 최소 3개 이상 게시글이 동일 이슈를 다루는 경우만 분류
-- 단순 불만은 이슈 아님
+- 단순 불만은 이슈 아님, 집단적 문제 제기여야 함
 - 감지된 이슈 없으면 issues:[]`;
 
   try {
@@ -292,30 +333,39 @@ ${formatDcPosts(highEngagement, 50)}
         evidence_post_count: number;
         avg_views: number;
         avg_comments: number;
-        source_links: string[];
         start_date: string;
+        top_posts?: { url: string; title: string; views: number; comments: number; likes: number }[];
       }[];
     };
 
-    return (parsed.issues || []).map((issue) => ({
-      id: `issue-${issue.start_date || fromDate}-${Math.random().toString(36).slice(2, 8)}`,
-      gameId,
-      date: issue.start_date || fromDate,
-      type: "user_issue" as TimelineItem["type"],
-      title: issue.title,
-      summary: issue.summary,
-      detail: `근거: 관련 게시글 ${issue.evidence_post_count}건, 평균 조회수 ${issue.avg_views}, 평균 댓글 ${issue.avg_comments}`,
-      sourceLinks: issue.source_links || [],
-      evidenceCount: issue.evidence_post_count || 0,
-      evidenceMetrics: {
-        postCount: issue.evidence_post_count,
-        avgViews: issue.avg_views,
-        avgComments: issue.avg_comments,
-      },
-      relatedEventDate: null,
-      dcSentiment: "negative" as TimelineItem["dcSentiment"],
-      createdAt: new Date().toISOString(),
-    }));
+    const validUrls = new Set(sortedPosts.map((p) => p.link));
+
+    return (parsed.issues || []).map((issue) => {
+      const sourceLinks: SourceLink[] = (issue.top_posts || [])
+        .filter((p) => p.url && validUrls.has(p.url))
+        .slice(0, 5)
+        .map((p) => ({ url: p.url, title: p.title, views: p.views, comments: p.comments, likes: p.likes }));
+
+      return {
+        id: `issue-${issue.start_date || fromDate}-${Math.random().toString(36).slice(2, 8)}`,
+        gameId,
+        date: issue.start_date || fromDate,
+        type: "user_issue" as TimelineItem["type"],
+        title: issue.title,
+        summary: issue.summary,
+        detail: `근거: 관련 게시글 ${issue.evidence_post_count}건, 평균 조회수 ${issue.avg_views}, 평균 댓글 ${issue.avg_comments}`,
+        sourceLinks,
+        evidenceCount: issue.evidence_post_count || 0,
+        evidenceMetrics: {
+          postCount: issue.evidence_post_count,
+          avgViews: issue.avg_views,
+          avgComments: issue.avg_comments,
+        },
+        relatedEventDate: null,
+        dcSentiment: "negative" as TimelineItem["dcSentiment"],
+        createdAt: new Date().toISOString(),
+      };
+    });
   } catch (err) {
     console.error("Issue detection error:", err);
     return [];
@@ -353,13 +403,7 @@ export async function generateTimeline(
     const to3 = format(addDays(parseISO(eventDate), 3), "yyyy-MM-dd");
     const nearbyDc = dcPosts.filter((p) => p.date >= from3 && p.date <= to3);
 
-    const item = await analyzeEventReaction(
-      game.name,
-      eventDate,
-      eventsOnDate,
-      nearbyDc,
-      game.id
-    );
+    const item = await analyzeEventReaction(game.name, eventDate, eventsOnDate, nearbyDc, game.id);
     if (item) reactionItems.push(item);
   }
 
@@ -379,26 +423,13 @@ export async function generateTimeline(
       const weekDc = dcPosts.filter((p) => p.date >= wStart && p.date <= wEnd);
       const weekForum = filteredForum.filter((p) => p.date >= wStart && p.date <= wEnd);
 
-      const item = await analyzeWeeklySummary(
-        game.name,
-        wStart,
-        wEnd,
-        weekDc,
-        weekForum,
-        game.id
-      );
+      const item = await analyzeWeeklySummary(game.name, wStart, wEnd, weekDc, weekForum, game.id);
       if (item) weeklyItems.push(item);
     }
   }
 
   // 4. 유저 이슈 감지
-  const issueItems = await detectUserIssues(
-    game.name,
-    fromDate,
-    toDate,
-    dcPosts,
-    game.id
-  );
+  const issueItems = await detectUserIssues(game.name, fromDate, toDate, dcPosts, game.id);
 
   return [...officialItems, ...reactionItems, ...weeklyItems, ...issueItems].sort(
     (a, b) => a.date.localeCompare(b.date)

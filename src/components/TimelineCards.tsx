@@ -72,12 +72,22 @@ function Card({ item }: { item: TimelineItem }) {
       )}
 
       {item.sourceLinks && item.sourceLinks.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 space-y-1.5 border-t border-[#2d3748] pt-3">
+          <p className="text-xs text-[#64748b] font-medium mb-1.5">근거 게시글</p>
           {item.sourceLinks.slice(0, 5).map((link, i) => (
-            <a key={i} href={link} target="_blank" rel="noopener noreferrer"
-              className="text-xs text-[#3b82f6] hover:underline">
-              원문 {i + 1} →
-            </a>
+            <div key={i} className="flex items-start gap-2">
+              <a href={link.url} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-[#3b82f6] hover:underline leading-snug flex-1 min-w-0 line-clamp-2">
+                {link.title || `원문 ${i + 1}`}
+              </a>
+              {(link.views || link.comments || link.likes) && (
+                <span className="text-xs text-[#64748b] shrink-0 whitespace-nowrap">
+                  {link.views ? `조회 ${link.views.toLocaleString()}` : ""}
+                  {link.comments ? ` · 댓글 ${link.comments}` : ""}
+                  {link.likes ? ` · 추천 ${link.likes}` : ""}
+                </span>
+              )}
+            </div>
           ))}
           {item.sourceLinks.length > 5 && (
             <span className="text-xs text-[#64748b]">외 {item.sourceLinks.length - 5}개</span>

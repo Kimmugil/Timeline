@@ -189,7 +189,7 @@ export async function writeTimelineToSheet(sheetId: string, items: TimelineItem[
     item.title,
     item.summary,
     item.detail,
-    (item.sourceLinks || []).join(","),
+    JSON.stringify(item.sourceLinks || []),
     String(item.evidenceCount || 0),
     JSON.stringify(item.evidenceMetrics || {}),
     item.relatedEventDate || "",
@@ -241,7 +241,16 @@ export async function readTimelineFromSheet(sheetId: string): Promise<TimelineIt
       title: row[3] || "",
       summary: row[4] || "",
       detail: row[5] || "",
-      sourceLinks: row[6] ? row[6].split(",").filter(Boolean) : [],
+      sourceLinks: (() => {
+        try {
+          const parsed = JSON.parse(row[6] || "[]");
+          if (Array.isArray(parsed)) return parsed;
+          // 구버전 호환: 콤마 구분 URL 문자열
+          return row[6].split(",").filter(Boolean).map((url: string) => ({ url, title: url }));
+        } catch {
+          return row[6] ? row[6].split(",").filter(Boolean).map((url: string) => ({ url, title: url })) : [];
+        }
+      })(),
       evidenceCount: parseInt(row[7]) || 0,
       evidenceMetrics,
       relatedEventDate: row[9] || null,
