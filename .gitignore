@@ -1,0 +1,17 @@
+/node_modules
+/.next/
+/out/
+/build
+.DS_Store
+
+# 절대 커밋 금지 - 내부 키/시크릿
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+.vercel
+.claude/
+*.tsbuildinfo
+next-env.d.ts
