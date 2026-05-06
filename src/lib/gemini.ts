@@ -344,7 +344,7 @@ export async function generateTimeline(
   const officialItems = forumPostsToTimelineItems(filteredForum, game.id);
 
   // 2. 이벤트 날짜별 DC 반응 분석
-  const eventDates = [...new Set(filteredForum.map((p) => p.date))];
+  const eventDates = Array.from(new Set(filteredForum.map((p) => p.date)));
   const reactionItems: TimelineItem[] = [];
 
   for (const eventDate of eventDates) {
