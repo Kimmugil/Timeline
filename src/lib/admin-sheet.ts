@@ -37,6 +37,14 @@ async function ensureTab(
         requests: [{ addSheet: { properties: { title: tabName } } }],
       },
     });
+  }
+  // Always ensure headers are in row 1
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: ADMIN_SHEET_ID,
+    range: `'${tabName}'!A1:${String.fromCharCode(65 + headers.length - 1)}1`,
+  });
+  const firstRow = headerRes.data.values?.[0] || [];
+  if (firstRow[0] !== headers[0]) {
     await sheets.spreadsheets.values.update({
       spreadsheetId: ADMIN_SHEET_ID,
       range: `'${tabName}'!A1`,
@@ -152,9 +160,16 @@ export async function createGame(data: {
   const id = `game_${Date.now()}`;
   const now = new Date().toISOString();
 
-  await sheets.spreadsheets.values.append({
+  // Use explicit row position instead of append to avoid Google Sheets table detection quirks
+  const existing = await sheets.spreadsheets.values.get({
     spreadsheetId: ADMIN_SHEET_ID,
-    range: `'${GAMES_TAB}'!A:H`,
+    range: `'${GAMES_TAB}'!A:A`,
+  });
+  const nextRow = (existing.data.values?.length ?? 1) + 1;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: ADMIN_SHEET_ID,
+    range: `'${GAMES_TAB}'!A${nextRow}`,
     valueInputOption: "RAW",
     requestBody: {
       values: [[id, data.name, data.slug, data.dcRawSheetId, data.dcSheetTab, data.forumRawSheetId, "", now]],
