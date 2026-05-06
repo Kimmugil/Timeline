@@ -235,7 +235,7 @@ export async function readTimelineFromSheet(sheetId: string): Promise<TimelineIt
 
     items.push({
       id: row[0],
-      gameId: 0,
+      gameId: "",
       date: row[1],
       type: row[2] as TimelineItem["type"],
       title: row[3] || "",
