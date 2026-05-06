@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getGames, createGame } from "@/lib/db";
+import { getGames, createGame } from "@/lib/admin-sheet";
 
 export async function GET(req: NextRequest) {
   if (!await getSession(req)) {

@@ -4,8 +4,12 @@ import { verifyPassword, createSession, SESSION_COOKIE_OPTIONS } from "@/lib/aut
 export async function POST(req: NextRequest) {
   const { password } = await req.json();
 
-  if (!verifyPassword(password)) {
-    return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 401 });
+  const ok = await verifyPassword(password);
+  if (!ok) {
+    return NextResponse.json(
+      { error: "비밀번호가 올바르지 않습니다." },
+      { status: 401 }
+    );
   }
 
   const token = await createSession();

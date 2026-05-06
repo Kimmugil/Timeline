@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getGameById, updateGameProcessedSheet } from "@/lib/db";
+import { getGameById, updateGameProcessedSheet } from "@/lib/admin-sheet";
 import { readForumSheet, readDcSheet, writeTimelineToSheet } from "@/lib/sheets";
 import { generateTimeline } from "@/lib/gemini";
 import { createOrGetProcessedSheet } from "@/lib/gas";
 
-export const maxDuration = 300; // Vercel max timeout
+export const maxDuration = 300;
 
 export async function POST(
   req: NextRequest,
@@ -15,8 +15,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const gameId = parseInt(params.gameId);
-  const game = await getGameById(gameId);
+  const game = await getGameById(params.gameId);
   if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { fromDate, toDate } = (await req.json()) as {
@@ -36,7 +35,7 @@ export async function POST(
     let processedSheetId = game.processed_sheet_id;
     if (!processedSheetId) {
       processedSheetId = await createOrGetProcessedSheet(game.name);
-      await updateGameProcessedSheet(gameId, processedSheetId);
+      await updateGameProcessedSheet(game.id, processedSheetId);
     }
 
     // 2. raw 데이터 로드
@@ -57,7 +56,7 @@ export async function POST(
     // 3. AI 분석 + 타임라인 생성
     const items = await generateTimeline(
       {
-        id: gameId,
+        id: 0, // not used in gemini.ts logic
         name: game.name,
         dc_raw_sheet_id: game.dc_raw_sheet_id,
         dc_sheet_tab: game.dc_sheet_tab,

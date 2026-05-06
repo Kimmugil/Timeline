@@ -7,7 +7,7 @@ const getJwtSecret = () =>
   );
 
 const COOKIE_NAME = "__session";
-const PUBLIC = ["/login", "/api/auth/login"];
+const PUBLIC = ["/login", "/api/auth/login", "/api/ui-text"];
 
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;

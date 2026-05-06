@@ -3,13 +3,14 @@
 import { useState } from "react";
 
 type Props = {
-  gameId: number;
+  gameId: string;
   fromDate: string;
   toDate: string;
   onSuccess: () => void;
+  label?: string;
 };
 
-export default function AiGenerateButton({ gameId, fromDate, toDate, onSuccess }: Props) {
+export default function AiGenerateButton({ gameId, fromDate, toDate, onSuccess, label }: Props) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>("");
 
@@ -33,7 +34,7 @@ export default function AiGenerateButton({ gameId, fromDate, toDate, onSuccess }
 
       const data = await res.json();
       if (res.ok) {
-        setStatus(`✅ 완료! ${data.itemCount}개 타임라인 생성`);
+        setStatus(`✅ 완료! ${data.itemCount}개 생성`);
         onSuccess();
       } else {
         setStatus(`❌ ${data.error}`);
@@ -52,11 +53,9 @@ export default function AiGenerateButton({ gameId, fromDate, toDate, onSuccess }
         disabled={loading}
         className="bg-[#8b5cf6] hover:bg-[#7c3aed] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition-colors"
       >
-        {loading ? "⏳ 분석 중..." : "✨ AI 타임라인 생성"}
+        {loading ? "⏳ 분석 중..." : (label || "✨ AI 타임라인 생성")}
       </button>
-      {status && (
-        <span className="text-xs text-[#94a3b8]">{status}</span>
-      )}
+      {status && <span className="text-xs text-[#94a3b8]">{status}</span>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
+import { getConfigValue } from "./admin-sheet";
 
 const getJwtSecret = () =>
   new TextEncoder().encode(
@@ -16,8 +17,11 @@ export async function createSession(): Promise<string> {
     .sign(getJwtSecret());
 }
 
-export function verifyPassword(input: string): boolean {
-  return input === process.env.SECRET;
+// 비밀번호를 구글 시트 config 탭의 secret 키에서 읽어 검증
+export async function verifyPassword(input: string): Promise<boolean> {
+  const secret = await getConfigValue("secret");
+  if (!secret) return false;
+  return input === secret;
 }
 
 export async function getSession(req?: NextRequest): Promise<boolean> {

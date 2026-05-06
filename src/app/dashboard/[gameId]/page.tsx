@@ -2,25 +2,24 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { GameConfig, TimelineItem, ChartDataPoint } from "@/lib/types";
+import { GameConfig, TimelineItem } from "@/lib/types";
+import { useUiText } from "@/lib/use-ui-text";
 import TimelineChart from "@/components/TimelineChart";
 import TimelineCards from "@/components/TimelineCards";
-import MetricsUpload from "@/components/MetricsUpload";
 import AiGenerateButton from "@/components/AiGenerateButton";
 
 export default function GameTimelinePage() {
   const params = useParams();
   const router = useRouter();
   const gameId = params.gameId as string;
+  const { t, refreshTexts } = useUiText();
 
   const [game, setGame] = useState<GameConfig | null>(null);
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showUpload, setShowUpload] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  // Date range state (default: last 3 months)
   const today = new Date();
   const threeMonthsAgo = new Date(today);
   threeMonthsAgo.setMonth(today.getMonth() - 3);
@@ -30,51 +29,47 @@ export default function GameTimelinePage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [gameRes, timelineRes, metricsRes] = await Promise.all([
+      const [gameRes, timelineRes] = await Promise.all([
         fetch(`/api/games/${gameId}`),
         fetch(`/api/timeline/${gameId}`),
-        fetch(`/api/metrics/${gameId}?from=${fromDate}&to=${toDate}`),
       ]);
 
-      if (gameRes.ok) {
-        const { game } = await gameRes.json();
-        setGame(game);
-      }
-
-      if (timelineRes.ok) {
-        const { items } = await timelineRes.json();
-        setTimelineItems(items || []);
-      }
-
-      if (metricsRes.ok) {
-        const { metrics } = await metricsRes.json();
-        const points: ChartDataPoint[] = metrics.map(
-          (m: { date: string; data: Record<string, number> }) => ({
-            date: m.date,
-            ...m.data,
-          })
-        );
-        setChartData(points);
-      }
+      if (gameRes.ok) setGame((await gameRes.json()).game);
+      if (timelineRes.ok) setTimelineItems((await timelineRes.json()).items || []);
     } finally {
       setLoading(false);
     }
-  }, [gameId, fromDate, toDate]);
+  }, [gameId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  async function handleExport() {
+    setExporting(true);
+    const res = await fetch(`/api/timeline/${gameId}/export`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `timeline_${game?.slug || gameId}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      alert("내보내기 실패: 먼저 AI 타임라인을 생성해주세요.");
+    }
+    setExporting(false);
+  }
+
   const filteredItems = selectedDate
     ? timelineItems.filter((item) => item.date === selectedDate)
-    : timelineItems.filter(
-        (item) => item.date >= fromDate && item.date <= toDate
-      );
+    : timelineItems.filter((item) => item.date >= fromDate && item.date <= toDate);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <p className="text-[#94a3b8]">로딩 중...</p>
+        <p className="text-[#94a3b8]">{t("dashboard.loading", "로딩 중...")}</p>
       </div>
     );
   }
@@ -82,16 +77,26 @@ export default function GameTimelinePage() {
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
       {/* Header */}
-      <header className="border-b border-[#2d3748] px-6 py-4 flex items-center gap-4">
+      <header className="border-b border-[#2d3748] px-6 py-4 flex items-center gap-4 flex-wrap">
         <button
           onClick={() => router.push("/dashboard")}
           className="text-[#94a3b8] hover:text-white transition-colors"
         >
-          ← 목록
+          {t("timeline.back", "← 목록")}
         </button>
         <h1 className="text-xl font-bold">{game?.name || "게임"} 타임라인</h1>
+
         <div className="ml-auto flex items-center gap-3 flex-wrap">
-          {/* Date range picker */}
+          {/* 텍스트 갱신 */}
+          <button
+            onClick={refreshTexts}
+            title="ui_text 시트 동기화"
+            className="text-xs text-[#94a3b8] hover:text-white border border-[#2d3748] px-3 py-1.5 rounded-lg"
+          >
+            ↻ 텍스트 갱신
+          </button>
+
+          {/* 날짜 범위 */}
           <div className="flex items-center gap-2 text-sm">
             <input
               type="date"
@@ -114,49 +119,48 @@ export default function GameTimelinePage() {
               fromDate={fromDate}
               toDate={toDate}
               onSuccess={loadData}
+              label={t("timeline.generate_ai", "✨ AI 타임라인 생성")}
             />
           )}
 
           <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="border border-[#2d3748] hover:border-[#3b82f6] text-[#94a3b8] hover:text-white text-sm px-4 py-2 rounded-lg transition-colors"
+            onClick={handleExport}
+            disabled={exporting}
+            className="border border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10 disabled:opacity-50 text-sm px-4 py-2 rounded-lg transition-colors"
           >
-            📊 지표 업로드
+            {exporting ? "내보내는 중..." : t("timeline.export_json", "⬇ JSON 내보내기")}
           </button>
         </div>
       </header>
 
-      <main className="p-6 space-y-6">
-        {/* Metrics upload panel */}
-        {showUpload && game && (
-          <MetricsUpload
-            gameId={game.id}
-            onSuccess={() => {
-              setShowUpload(false);
-              loadData();
-            }}
-          />
-        )}
+      {/* 안내 배너 */}
+      <div className="mx-6 mt-4 bg-[#1a1f2e] border border-[#f59e0b]/30 rounded-xl px-5 py-3 text-sm text-[#94a3b8]">
+        <span className="text-[#f59e0b] font-semibold">💡 지표(DAU·매출) 확인 방법: </span>
+        ①&nbsp;JSON 내보내기 → ②&nbsp;<code className="bg-[#0f1117] px-1 rounded text-xs">local-viewer.html</code> 열기 → ③&nbsp;JSON + 지표 CSV 불러오기
+      </div>
 
-        {/* Timeline Chart */}
+      <main className="p-6 space-y-6">
+        {/* Timeline Chart (이벤트 마커만, 지표 없음) */}
         <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-sm text-[#94a3b8]">지표 + 이벤트 타임라인</h2>
+            <h2 className="font-semibold text-sm text-[#94a3b8]">
+              {t("timeline.chart_title", "이벤트 타임라인")}
+            </h2>
             {selectedDate && (
               <button
                 onClick={() => setSelectedDate(null)}
                 className="text-xs text-[#3b82f6] hover:underline"
               >
-                전체 보기
+                {t("timeline.show_all", "전체 보기")}
               </button>
             )}
           </div>
           <TimelineChart
-            chartData={chartData}
+            chartData={[]}
             timelineItems={timelineItems.filter(
               (item) => item.date >= fromDate && item.date <= toDate
             )}
-            metricColumns={game?.metric_columns || []}
+            metricColumns={[]}
             onDateClick={(date) =>
               setSelectedDate((prev) => (prev === date ? null : date))
             }
@@ -173,12 +177,9 @@ export default function GameTimelinePage() {
             { type: "user_issue", label: "유저 이슈", color: "#ef4444" },
             { type: "weekly_summary", label: "주간 동향", color: "#8b5cf6" },
             { type: "event_reaction", label: "이벤트 반응", color: "#64748b" },
-          ].map(({ type, label, color }) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <span
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: color }}
-              />
+          ].map(({ label, color }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
               {label}
             </div>
           ))}
@@ -187,12 +188,17 @@ export default function GameTimelinePage() {
         {/* Timeline Cards */}
         <div>
           <h2 className="font-semibold mb-4">
-            {selectedDate ? `${selectedDate} 이벤트` : "전체 이벤트"}
+            {selectedDate
+              ? `${selectedDate} 이벤트`
+              : t("timeline.cards_title", "이벤트 목록")}
             <span className="text-[#94a3b8] text-sm font-normal ml-2">
               ({filteredItems.length}건)
             </span>
           </h2>
-          <TimelineCards items={filteredItems} />
+          <TimelineCards
+            items={filteredItems}
+            emptyMessage={t("timeline.no_items", "이벤트가 없습니다. AI 타임라인 생성 버튼을 눌러 분석을 시작하세요.")}
+          />
         </div>
       </main>
     </div>

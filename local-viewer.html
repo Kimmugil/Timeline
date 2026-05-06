@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타임라인 로컬 뷰어</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    /* Header */
+    .header { border-bottom: 1px solid #2d3748; padding-bottom: 16px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header .badge { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+
+    /* Guide */
+    .guide { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .guide-header { padding: 14px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
+    .guide-header:hover { background: #232938; }
+    .guide-body { padding: 0 20px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .guide-step { border-radius: 10px; padding: 16px; border: 1px solid; }
+    .guide-step .icon { font-size: 24px; margin-bottom: 8px; }
+    .guide-step .title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .guide-step .desc { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+    /* File inputs */
+    .file-section { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .file-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #94a3b8; }
+    .file-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .file-label { font-size: 13px; color: #94a3b8; width: 140px; shrink: 0; }
+    .file-status { font-size: 12px; }
+    .file-status.ok { color: #10b981; }
+    .file-status.empty { color: #64748b; }
+    input[type=file] { font-size: 13px; color: #94a3b8; }
+    input[type=file]::file-selector-button { background: #2d3748; border: none; color: #fff; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; margin-right: 10px; }
+    input[type=file]::file-selector-button:hover { background: #3d4a5f; }
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .btn { padding: 10px 20px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+    .btn-green { background: #10b981; color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #059669; }
+    .btn-purple { background: #8b5cf6; color: #fff; }
+    .btn-purple:hover:not(:disabled) { background: #7c3aed; }
+
+    /* Chart */
+    .chart-section { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin-bottom: 24px; display: none; }
+    .chart-section.visible { display: block; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .chart-title { font-size: 14px; font-weight: 600; color: #94a3b8; }
+    .date-range { display: flex; gap: 8px; align-items: center; }
+    .date-range input { background: #0f1117; border: 1px solid #2d3748; border-radius: 8px; padding: 6px 10px; color: #fff; font-size: 12px; }
+    .chart-wrap { position: relative; height: 320px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* Cards */
+    .cards-section { display: none; }
+    .cards-section.visible { display: block; }
+    .cards-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .cards-title .count { font-size: 13px; font-weight: 400; color: #94a3b8; }
+    .date-group { margin-bottom: 24px; }
+    .date-label { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .date-label span { font-family: monospace; font-size: 13px; color: #94a3b8; }
+    .date-line { flex: 1; height: 1px; background: #2d3748; }
+    .card { border-radius: 12px; padding: 16px; border: 1px solid; margin-bottom: 12px; margin-left: 8px; }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .card-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .badge-type { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+    .badge-sentiment { font-size: 11px; padding: 2px 8px; border-radius: 12px; }
+    .card-evidence { font-size: 11px; color: #94a3b8; }
+    .card-title { font-size: 15px; font-weight: 600; color: #fff; margin-top: 8px; }
+    .card-summary { font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6; }
+    .card-detail { font-size: 12px; color: #94a3b8; white-space: pre-wrap; line-height: 1.6; margin-top: 10px; padding-top: 10px; border-top: 1px solid #2d3748; display: none; }
+    .card-detail.open { display: block; }
+    .toggle-detail { font-size: 12px; color: #3b82f6; cursor: pointer; margin-top: 8px; background: none; border: none; padding: 0; }
+    .toggle-detail:hover { text-decoration: underline; }
+    .card-metrics { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: #64748b; }
+    .metric-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 8px 12px; }
+    .metric-box .metric-label { font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
+    .metric-box .metric-value { font-size: 14px; font-weight: 700; color: #3b82f6; }
+    .metric-box .metric-change { font-size: 10px; margin-top: 2px; }
+    .metric-change.up { color: #10b981; }
+    .metric-change.down { color: #ef4444; }
+    .card-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .card-link { font-size: 12px; color: #3b82f6; text-decoration: none; }
+    .card-link:hover { text-decoration: underline; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 60px 20px; color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>📊 타임라인 로컬 뷰어</h1>
+      <p style="font-size:13px;color:#94a3b8;margin-top:4px;">지표 데이터는 이 PC에서만 처리됩니다 — 외부로 전송되지 않습니다</p>
+    </div>
+    <div class="badge">🔒 오프라인 전용</div>
+  </div>
+
+  <!-- 사용 가이드 -->
+  <div class="guide">
+    <div class="guide-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'grid':'none'; this.querySelector('.toggle-icon').textContent = this.querySelector('.toggle-icon').textContent==='▼'?'▲':'▼'">
+      <span>📋 사용 방법</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="guide-body">
+      <div class="guide-step" style="background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.3)">
+        <div class="icon">⬇</div>
+        <div class="title">① JSON 내보내기</div>
+        <div class="desc">Vercel 대시보드에서 타임라인 JSON 파일을 내보내기하세요.</div>
+      </div>
+      <div class="guide-step" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">
+        <div class="icon">📁</div>
+        <div class="title">② 파일 선택</div>
+        <div class="desc">아래에서 JSON 파일을 선택하고, 내부 지표 CSV도 함께 불러오세요.</div>
+      </div>
+      <div class="guide-step" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.3)">
+        <div class="icon">📊</div>
+        <div class="title">③ 차트 생성</div>
+        <div class="desc">버튼을 누르면 이벤트 타임라인과 지표 차트가 함께 표시됩니다.</div>
+      </div>
+      <div class="guide-step" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.3)">
+        <div class="icon">🤖</div>
+        <div class="title">④ 종합 분석</div>
+        <div class="desc">종합 분석 파일을 다운로드해 Claude에게 던지면 자동으로 분석해줍니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV 형식 안내 -->
+  <div style="background:#1a1f2e;border:1px solid #2d3748;border-radius:12px;padding:14px 20px;margin-bottom:24px;font-size:12px;color:#94a3b8;">
+    <strong style="color:#f59e0b">💡 지표 CSV 형식:</strong>
+    첫 행에 컬럼명을 넣되 <code style="background:#0f1117;padding:2px 6px;border-radius:4px">date</code> 컬럼은 필수입니다.
+    예) <code style="background:#0f1117;padding:2px 6px;border-radius:4px">date,dau,revenue,paying_users</code> — 날짜는 YYYY-MM-DD 형식
+  </div>
+
+  <!-- 파일 선택 -->
+  <div class="file-section">
+    <h3>📁 파일 선택</h3>
+    <div class="file-row">
+      <span class="file-label">타임라인 JSON <span style="color:#ef4444">*</span></span>
+      <input type="file" id="jsonFile" accept=".json" onchange="onFileChange('json')" />
+      <span class="file-status empty" id="jsonStatus">파일을 선택하세요</span>
+    </div>
+    <div class="file-row">
+      <span class="file-label">지표 CSV <span style="color:#94a3b8">(선택)</span></span>
+      <input type="file" id="csvFile" accept=".csv" onchange="onFileChange('csv')" />
+      <span class="file-status empty" id="csvStatus">선택 안 함 — 이벤트만 표시</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="renderBtn" onclick="render()" disabled>차트 생성</button>
+      <button class="btn btn-purple" id="analysisBtn" onclick="downloadAnalysis()" disabled>🤖 종합 분석 파일 다운로드</button>
+    </div>
+    <p style="font-size:11px;color:#64748b;margin-top:10px;">종합 분석 파일: 타임라인 + 지표를 합쳐서 Claude가 분석할 수 있는 Markdown 파일로 다운로드합니다.</p>
+  </div>
+
+  <!-- 차트 -->
+  <div class="chart-section" id="chartSection">
+    <div class="chart-header">
+      <span class="chart-title">이벤트 타임라인 + 지표</span>
+      <div class="date-range">
+        <input type="date" id="fromDate" onchange="applyDateFilter()" />
+        <span style="color:#94a3b8">~</span>
+        <input type="date" id="toDate" onchange="applyDateFilter()" />
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="myChart"></canvas></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <!-- 이벤트 카드 -->
+  <div class="cards-section" id="cardsSection">
+    <div class="cards-title">
+      이벤트 목록 <span class="count" id="cardsCount"></span>
+    </div>
+    <div id="cardsContainer"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── 상수 ─────────────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  official_patch:  { label: '패치노트',    color: '#3b82f6' },
+  official_event:  { label: '공식 이벤트', color: '#10b981' },
+  official_notice: { label: '공지사항',    color: '#f59e0b' },
+  user_issue:      { label: '유저 이슈',   color: '#ef4444' },
+  weekly_summary:  { label: '주간 동향',   color: '#8b5cf6' },
+  event_reaction:  { label: '이벤트 반응', color: '#64748b' },
+};
+const SENTIMENT = {
+  positive: { label: '😊 긍정', color: '#10b981' },
+  negative: { label: '😠 부정', color: '#ef4444' },
+  neutral:  { label: '😐 중립', color: '#94a3b8' },
+  mixed:    { label: '🤔 복합', color: '#f59e0b' },
+};
+const LINE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+// ─── 상태 ─────────────────────────────────────────────────────────────────────
+let timelineData = null; // { gameName, items }
+let metricsData = [];    // [{ date, ...metrics }]
+let metricCols = [];
+let chart = null;
+let filteredFrom = null;
+let filteredTo   = null;
+
+// ─── 파일 로딩 ────────────────────────────────────────────────────────────────
+function onFileChange(type) {
+  const file = type === 'json'
+    ? document.getElementById('jsonFile').files[0]
+    : document.getElementById('csvFile').files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    if (type === 'json') {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        timelineData = { gameName: parsed.gameName || '게임', items: parsed.items || [] };
+        document.getElementById('jsonStatus').textContent = `✓ ${file.name} (${timelineData.items.length}개 이벤트)`;
+        document.getElementById('jsonStatus').className = 'file-status ok';
+        document.getElementById('renderBtn').disabled = false;
+        document.getElementById('analysisBtn').disabled = false;
+      } catch {
+        document.getElementById('jsonStatus').textContent = '❌ JSON 파싱 실패';
+      }
+    } else {
+      try {
+        const parsed = parseCSV(e.target.result);
+        metricCols = parsed.headers.filter(h => h !== 'date');
+        metricsData = parsed.rows.map(r => {
+          const obj = { date: r.date };
+          metricCols.forEach(c => { obj[c] = parseFloat((r[c] || '0').replace(/,/g, '')) || null; });
+          return obj;
+        }).filter(r => r.date);
+        document.getElementById('csvStatus').textContent = `✓ ${file.name} (${metricsData.length}행, 컬럼: ${metricCols.join(', ')})`;
+        document.getElementById('csvStatus').className = 'file-status ok';
+      } catch {
+        document.getElementById('csvStatus').textContent = '❌ CSV 파싱 실패';
+      }
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows = lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = values[i] || ''; });
+    return obj;
+  });
+  return { headers, rows };
+}
+
+// ─── 렌더링 ───────────────────────────────────────────────────────────────────
+function render() {
+  if (!timelineData) return;
+
+  // 날짜 범위 설정
+  const allDates = getAllDates();
+  filteredFrom = filteredFrom || allDates[0];
+  filteredTo   = filteredTo   || allDates[allDates.length - 1];
+  document.getElementById('fromDate').value = filteredFrom;
+  document.getElementById('toDate').value   = filteredTo;
+
+  renderChart(allDates);
+  renderCards();
+
+  document.getElementById('chartSection').classList.add('visible');
+  document.getElementById('cardsSection').classList.add('visible');
+}
+
+function getAllDates() {
+  const dateSet = new Set();
+  (timelineData.items || []).forEach(i => dateSet.add(i.date));
+  metricsData.forEach(m => dateSet.add(m.date));
+  return [...dateSet].sort();
+}
+
+function getFilteredDates() {
+  return getAllDates().filter(d => d >= filteredFrom && d <= filteredTo);
+}
+
+function applyDateFilter() {
+  filteredFrom = document.getElementById('fromDate').value;
+  filteredTo   = document.getElementById('toDate').value;
+  if (!filteredFrom || !filteredTo) return;
+  renderChart(getFilteredDates());
+  renderCards();
+}
+
+// ─── 차트 ────────────────────────────────────────────────────────────────────
+function renderChart(dates) {
+  if (chart) { chart.destroy(); chart = null; }
+
+  const items = (timelineData.items || []).filter(i => i.date >= filteredFrom && i.date <= filteredTo);
+
+  // 이벤트 날짜별 인덱스
+  const eventByDate = {};
+  items.forEach(item => {
+    if (!eventByDate[item.date]) eventByDate[item.date] = [];
+    eventByDate[item.date].push(item);
+  });
+
+  const datasets = [];
+
+  // 지표 데이터셋
+  metricCols.forEach((col, i) => {
+    const data = dates.map(d => {
+      const m = metricsData.find(m => m.date === d);
+      return m ? (m[col] ?? null) : null;
+    });
+    if (i === 0) {
+      datasets.push({ type: 'line', label: col, data, borderColor: LINE_COLORS[0], backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, yAxisID: 'y1', spanGaps: false, tension: 0.3 });
+    } else if (i === 1) {
+      datasets.push({ type: 'bar', label: col, data, backgroundColor: LINE_COLORS[1] + '99', borderRadius: 2, yAxisID: 'y2', spanGaps: false });
+    } else {
+      datasets.push({ type: 'line', label: col, data, borderColor: LINE_COLORS[i % LINE_COLORS.length], backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, yAxisID: 'y1', spanGaps: false, tension: 0.3 });
+    }
+  });
+
+  // 이벤트 마커 플러그인
+  const eventMarkersPlugin = {
+    id: 'eventMarkers',
+    beforeDraw(chart) {
+      const ctx = chart.ctx;
+      const xScale = chart.scales.x;
+      ctx.save();
+      Object.entries(eventByDate).forEach(([date, evItems]) => {
+        const idx = dates.indexOf(date);
+        if (idx < 0) return;
+        const x = xScale.getPixelForValue(idx);
+        const color = TYPE_CONFIG[evItems[0].type]?.color || '#64748b';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x, chart.chartArea.top);
+        ctx.lineTo(x, chart.chartArea.bottom);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+  };
+
+  const fmt = (n) => {
+    if (!n && n !== 0) return '';
+    if (Math.abs(n) >= 100000000) return (n/100000000).toFixed(1) + '억';
+    if (Math.abs(n) >= 10000) return (n/10000).toFixed(1) + '만';
+    return n.toLocaleString();
+  };
+
+  const scales = {
+    x: {
+      ticks: { color: '#94a3b8', font: { size: 11 }, maxTicksLimit: 12, callback: (_, i) => dates[i]?.slice(5) },
+      grid: { color: '#1e2535' },
+    },
+  };
+  if (metricCols.length > 0) {
+    scales.y1 = { position: 'left', ticks: { color: '#94a3b8', font: { size: 11 }, callback: fmt }, grid: { color: '#2d3748' } };
+  }
+  if (metricCols.length > 1) {
+    scales.y2 = { position: 'right', ticks: { color: '#94a3b8', font: { size: 11 }, callback: fmt }, grid: { display: false } };
+  }
+
+  const ctx = document.getElementById('myChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: dates, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 } } },
+        tooltip: {
+          backgroundColor: '#1a1f2e',
+          borderColor: '#2d3748',
+          borderWidth: 1,
+          titleColor: '#f8fafc',
+          bodyColor: '#94a3b8',
+          callbacks: {
+            afterBody: (items) => {
+              const date = dates[items[0]?.dataIndex];
+              const evs = eventByDate[date] || [];
+              if (!evs.length) return [];
+              return ['', '─── 이벤트 ───', ...evs.slice(0,3).map(e => `[${TYPE_CONFIG[e.type]?.label}] ${e.title.slice(0,40)}`)];
+            },
+          },
+        },
+      },
+      scales,
+    },
+    plugins: [eventMarkersPlugin],
+  });
+
+  // 범례
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML = Object.entries(TYPE_CONFIG).map(([, cfg]) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${cfg.color}"></div>${cfg.label}</div>`
+  ).join('');
+}
+
+// ─── 카드 ────────────────────────────────────────────────────────────────────
+function renderCards() {
+  const items = (timelineData.items || [])
+    .filter(i => i.date >= filteredFrom && i.date <= filteredTo)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  document.getElementById('cardsCount').textContent = `(${items.length}건)`;
+
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.date]) grouped[item.date] = [];
+    grouped[item.date].push(item);
+  });
+
+  const container = document.getElementById('cardsContainer');
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty">이 기간에 이벤트가 없습니다.</div>';
+    return;
+  }
+
+  container.innerHTML = Object.entries(grouped).map(([date, dateItems]) => {
+    // 인근 지표 계산
+    const nearbyMetrics = getMetricsNear(date, 1);
+
+    return `
+    <div class="date-group">
+      <div class="date-label"><span>${date}</span><div class="date-line"></div></div>
+      ${nearbyMetrics ? `<div style="display:flex;gap:8px;margin-bottom:12px;margin-left:8px;flex-wrap:wrap;">${nearbyMetrics}</div>` : ''}
+      ${dateItems.map(item => renderCard(item)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function getMetricsNear(date, days) {
+  if (metricCols.length === 0) return '';
+  const m = metricsData.find(m => m.date === date);
+  if (!m) return '';
+
+  // 이전 7일 평균
+  const prev7 = metricsData.filter(r => r.date < date && r.date >= addDays(date, -7));
+
+  return metricCols.slice(0, 3).map(col => {
+    const val = m[col];
+    if (val == null) return '';
+    const prevAvg = prev7.length ? prev7.reduce((s, r) => s + (r[col] || 0), 0) / prev7.length : null;
+    const change = (prevAvg && prevAvg > 0) ? ((val - prevAvg) / prevAvg * 100) : null;
+    const changeStr = change != null ? `<span class="metric-change ${change>=0?'up':'down'}">${change>=0?'▲':'▼'} ${Math.abs(change).toFixed(1)}%</span>` : '';
+    return `<div class="metric-box"><div class="metric-label">${col}</div><div class="metric-value">${fmt(val)}</div>${changeStr}</div>`;
+  }).join('');
+}
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '-';
+  if (Math.abs(n) >= 100000000) return (n/100000000).toFixed(1) + '억';
+  if (Math.abs(n) >= 10000) return (n/10000).toFixed(1) + '만';
+  return n.toLocaleString();
+}
+
+function renderCard(item) {
+  const cfg = TYPE_CONFIG[item.type] || { label: item.type, color: '#64748b' };
+  const sent = item.dcSentiment ? SENTIMENT[item.dcSentiment] : null;
+  const cardId = 'card_' + Math.random().toString(36).slice(2);
+  const hasDetail = item.detail && item.detail.trim();
+
+  const linksHtml = (item.sourceLinks || []).slice(0, 5).map((link, i) =>
+    `<a href="${link}" target="_blank" class="card-link">원문 ${i+1} →</a>`
+  ).join('');
+
+  const evidenceHtml = (item.evidenceMetrics && (item.evidenceMetrics.avgViews || item.evidenceMetrics.avgComments))
+    ? `<div class="card-metrics">
+        ${item.evidenceMetrics.avgViews ? `<span>평균 조회 ${item.evidenceMetrics.avgViews.toLocaleString()}</span>` : ''}
+        ${item.evidenceMetrics.avgComments ? `<span>평균 댓글 ${item.evidenceMetrics.avgComments}</span>` : ''}
+       </div>` : '';
+
+  return `
+  <div class="card" style="background:${cfg.color}11;border-color:${cfg.color}44">
+    <div class="card-head">
+      <div class="card-badges">
+        <span class="badge-type" style="background:${cfg.color}22;color:${cfg.color}">${cfg.label}</span>
+        ${sent ? `<span class="badge-sentiment" style="background:${sent.color}22;color:${sent.color}">${sent.label}</span>` : ''}
+        <span style="font-size:11px;color:#94a3b8">${item.date}</span>
+      </div>
+      ${item.evidenceCount ? `<span class="card-evidence">게시글 ${item.evidenceCount}건</span>` : ''}
+    </div>
+    <div class="card-title">${item.title || ''}</div>
+    ${item.summary ? `<div class="card-summary">${item.summary}</div>` : ''}
+    ${hasDetail ? `
+      <div class="card-detail" id="${cardId}">${item.detail}</div>
+      <button class="toggle-detail" onclick="toggleDetail('${cardId}', this)">자세히 보기</button>
+    ` : ''}
+    ${evidenceHtml}
+    ${linksHtml ? `<div class="card-links">${linksHtml}</div>` : ''}
+  </div>`;
+}
+
+function toggleDetail(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open') ? '접기' : '자세히 보기';
+}
+
+// ─── 종합 분석 파일 다운로드 ─────────────────────────────────────────────────
+function downloadAnalysis() {
+  if (!timelineData) return;
+
+  const gameName = timelineData.gameName || '게임';
+  const today = new Date().toISOString().slice(0, 10);
+  const items = [...(timelineData.items || [])].sort((a,b) => a.date.localeCompare(b.date));
+
+  let md = `# ${gameName} 타임라인 종합 분석 데이터\n`;
+  md += `생성일시: ${new Date().toLocaleString('ko-KR')}\n`;
+  if (items.length > 0) {
+    md += `수록 기간: ${items[0].date} ~ ${items[items.length-1].date}\n`;
+  }
+  md += `\n---\n\n`;
+
+  // 지표 테이블
+  if (metricsData.length > 0 && metricCols.length > 0) {
+    md += `## 📊 지표 데이터 (일별)\n\n`;
+    md += `| 날짜 | ${metricCols.join(' | ')} |\n`;
+    md += `|------|${metricCols.map(() => '---').join('|')}|\n`;
+    metricsData.forEach(m => {
+      const vals = metricCols.map(c => m[c] != null ? Number(m[c]).toLocaleString() : '-');
+      md += `| ${m.date} | ${vals.join(' | ')} |\n`;
+    });
+    md += `\n---\n\n`;
+  }
+
+  // 타임라인 이벤트
+  md += `## 📅 타임라인 이벤트\n\n`;
+
+  if (items.length === 0) {
+    md += '이벤트 없음\n';
+  } else {
+    items.forEach(item => {
+      const cfg = TYPE_CONFIG[item.type] || { label: item.type };
+      md += `### ${item.date} | [${cfg.label}] ${item.title}\n\n`;
+
+      if (item.summary) md += `**요약**: ${item.summary}\n\n`;
+      if (item.detail && item.detail.trim()) md += `**상세**:\n${item.detail}\n\n`;
+
+      // 인근 지표
+      if (metricCols.length > 0) {
+        const m = metricsData.find(r => r.date === item.date);
+        if (m) {
+          md += `**당일 지표**: ${metricCols.map(c => `${c}: ${m[c] != null ? Number(m[c]).toLocaleString() : '-'}`).join(' / ')}\n`;
+
+          // 이전 7일 평균 대비
+          const prev7 = metricsData.filter(r => r.date < item.date && r.date >= addDays(item.date, -7));
+          if (prev7.length > 0) {
+            const changes = metricCols.map(c => {
+              const val = m[c];
+              const avg = prev7.reduce((s, r) => s + (r[c] || 0), 0) / prev7.length;
+              if (!val || !avg) return null;
+              const pct = ((val - avg) / avg * 100).toFixed(1);
+              return `${c}: ${pct > 0 ? '+' : ''}${pct}%`;
+            }).filter(Boolean);
+            if (changes.length) md += `**전주 대비**: ${changes.join(' / ')}\n`;
+          }
+        }
+      }
+
+      if (item.dcSentiment) md += `**유저 반응 감성**: ${SENTIMENT[item.dcSentiment]?.label || item.dcSentiment}\n`;
+      if (item.evidenceCount) md += `**근거 게시글**: ${item.evidenceCount}건\n`;
+      if (item.sourceLinks && item.sourceLinks.length > 0) {
+        md += `**원문 링크**:\n${item.sourceLinks.slice(0, 5).map(l => `- ${l}`).join('\n')}\n`;
+      }
+      md += `\n---\n\n`;
+    });
+  }
+
+  md += `\n> 이 파일은 타임라인 로컬 뷰어에서 자동 생성되었습니다. Claude에게 이 파일을 첨부하면 종합 분석을 받을 수 있습니다.\n`;
+
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${gameName}_종합분석_${today}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
