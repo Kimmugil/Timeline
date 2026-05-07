@@ -46,11 +46,11 @@ export default function CalendarView({
     eventsByDate[item.date].push(item.type);
   }
 
-  // 이 달에 이벤트 있는 날 수
+  // 이 달의 이벤트 총 건수
   const monthPrefix = currentMonth;
-  const eventDaysInMonth = Object.keys(eventsByDate).filter((d) =>
-    d.startsWith(monthPrefix)
-  ).length;
+  const eventCountInMonth = Object.entries(eventsByDate)
+    .filter(([d]) => d.startsWith(monthPrefix))
+    .reduce((sum, [, types]) => sum + types.length, 0);
 
   // 그리드 시작 오프셋 (월요일 기준)
   const firstDow = new Date(year, month - 1, 1).getDay(); // 0=Sun
@@ -103,8 +103,8 @@ export default function CalendarView({
           <p className="font-semibold text-slate-800 text-sm">
             {year}년 {month}월
           </p>
-          {eventDaysInMonth > 0 && (
-            <p className="text-[10px] text-slate-400">{eventDaysInMonth}일에 이벤트</p>
+          {eventCountInMonth > 0 && (
+            <p className="text-[10px] text-slate-400">이벤트 {eventCountInMonth}건</p>
           )}
         </div>
         <button

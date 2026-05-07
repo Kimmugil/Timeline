@@ -25,7 +25,10 @@ function EventSummaryBar({ items }: { items: TimelineItem[] }) {
     count: items.filter((i) => i.type === cfg.type).length,
   })).filter((b) => b.count > 0);
 
-  if (badges.length === 0) return null;
+  // DC 게시글 총합 (유저 동향 항목들의 evidenceCount 합산)
+  const totalDcPosts = items.reduce((sum, i) => sum + (i.evidenceCount || 0), 0);
+
+  if (badges.length === 0 && totalDcPosts === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
@@ -43,6 +46,12 @@ function EventSummaryBar({ items }: { items: TimelineItem[] }) {
           {b.label}
         </span>
       ))}
+      {totalDcPosts > 0 && (
+        <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-semibold"
+          style={{ borderColor: "#6366f155", color: "#6366f1", backgroundColor: "#6366f112" }}>
+          DC 게시글 {totalDcPosts}건 분석
+        </span>
+      )}
       <span className="text-xs text-slate-400">
         총 {items.filter((i) => i.type !== "weekly_summary").length}건
       </span>

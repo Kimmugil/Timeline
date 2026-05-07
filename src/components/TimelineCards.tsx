@@ -27,8 +27,8 @@ const SENTIMENT_CONFIG: Record<string, { label: string; color: string; bg: strin
 // ──────────────────────────────────────────
 function getMondayKey(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
-  const day = d.getDay(); // 0=Sun, 1=Mon...
-  const diff = day === 0 ? -6 : 1 - day; // 이번 주 월요일로
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);
 }
@@ -43,33 +43,31 @@ function formatWeekLabel(mondayStr: string): string {
   const d = new Date(mondayStr + "T00:00:00");
   const sunday = new Date(mondayStr + "T00:00:00");
   sunday.setDate(sunday.getDate() + 6);
-
-  const fmt = (dt: Date) =>
-    `${dt.getMonth() + 1}/${dt.getDate()}`;
+  const fmt = (dt: Date) => `${dt.getMonth() + 1}/${dt.getDate()}`;
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${fmt(d)} – ${fmt(sunday)}`;
 }
 
 // ──────────────────────────────────────────
-// 소스 링크 목록 (접기/펼치기)
+// DC 게시글 목록 (접기/펼치기)
 // ──────────────────────────────────────────
-function SourceLinks({ links }: { links: SourceLink[] }) {
-  const [expanded, setExpanded] = useState(false);
+function DcSourceLinks({ links, defaultExpanded = false }: { links: SourceLink[]; defaultExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   if (!links.length) return null;
   const shown = expanded ? links : links.slice(0, 3);
   return (
-    <div className="mt-2 space-y-1">
+    <div className="mt-1.5 space-y-1">
       {shown.map((link, i) => (
-        <div key={i} className="flex items-start gap-2">
+        <div key={i} className="flex items-center gap-2">
           <a
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-500 hover:underline flex-1 min-w-0 line-clamp-1"
+            className="text-xs text-blue-500 hover:underline flex-1 min-w-0 truncate"
           >
-            {link.title || `원문 ${i + 1}`}
+            {link.title || `게시글 ${i + 1}`}
           </a>
           {(link.views || link.comments) && (
-            <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
+            <span className="text-[11px] text-slate-400 shrink-0 whitespace-nowrap">
               {link.views ? `조회 ${link.views.toLocaleString()}` : ""}
               {link.comments ? ` · 댓글 ${link.comments}` : ""}
             </span>
@@ -79,7 +77,7 @@ function SourceLinks({ links }: { links: SourceLink[] }) {
       {links.length > 3 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-slate-400 hover:text-slate-600"
+          className="text-[11px] text-slate-400 hover:text-slate-600"
         >
           {expanded ? "접기" : `+${links.length - 3}개 더 보기`}
         </button>
@@ -92,8 +90,9 @@ function SourceLinks({ links }: { links: SourceLink[] }) {
 // 공식 이벤트 행 (patch / event / notice)
 // ──────────────────────────────────────────
 function OfficialRow({ item }: { item: TimelineItem }) {
-  const [expanded, setExpanded] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const cfg = TYPE_CONFIG[item.type];
+  const hasLinks = (item.sourceLinks?.length ?? 0) > 0;
 
   return (
     <div className="py-2.5 border-b border-slate-100 last:border-0">
@@ -106,21 +105,42 @@ function OfficialRow({ item }: { item: TimelineItem }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-slate-800 leading-snug">{item.title}</p>
-          {item.summary && (
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{item.summary}</p>
+
+          {/* 포럼 원문 링크 – 항상 표시 */}
+          {hasLinks && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {item.sourceLinks.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-full transition-colors border border-blue-100"
+                >
+                  🔗 {link.title ? link.title.slice(0, 35) : "원문 보기"}
+                </a>
+              ))}
+            </div>
           )}
+
+          {/* AI 요약 */}
+          {item.summary && (
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.summary}</p>
+          )}
+
+          {/* 주요 내용 접기/펼치기 */}
           {item.detail && (
             <>
-              {expanded && (
+              {detailOpen && (
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed whitespace-pre-wrap border-t border-slate-100 pt-1">
                   {item.detail}
                 </p>
               )}
               <button
-                onClick={() => setExpanded(!expanded)}
+                onClick={() => setDetailOpen(!detailOpen)}
                 className="text-[11px] text-blue-400 hover:text-blue-600 mt-1"
               >
-                {expanded ? "접기" : "주요 내용 보기"}
+                {detailOpen ? "접기" : "주요 내용 보기"}
               </button>
             </>
           )}
@@ -135,7 +155,7 @@ function OfficialRow({ item }: { item: TimelineItem }) {
 // 유저 동향 행 (user_issue / event_reaction)
 // ──────────────────────────────────────────
 function UserRow({ item }: { item: TimelineItem }) {
-  const [expanded, setExpanded] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const isIssue = item.type === "user_issue";
   const sentiment = item.dcSentiment ? SENTIMENT_CONFIG[item.dcSentiment] : null;
 
@@ -158,26 +178,40 @@ function UserRow({ item }: { item: TimelineItem }) {
               </span>
             )}
           </div>
+
           {item.summary && (
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{item.summary}</p>
           )}
+
+          {/* DC 게시글 수 – 뱃지로 강조 */}
           {item.evidenceCount > 0 && (
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              관련 게시글 {item.evidenceCount}건
-              {item.evidenceMetrics?.avgViews
-                ? ` · 평균 조회 ${item.evidenceMetrics.avgViews.toLocaleString()}`
-                : ""}
-            </p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                DC 게시글 {item.evidenceCount}건
+              </span>
+              {item.evidenceMetrics?.avgViews && (
+                <span className="text-[11px] text-slate-400">
+                  평균 조회 {item.evidenceMetrics.avgViews.toLocaleString()}
+                </span>
+              )}
+              {item.evidenceMetrics?.avgComments && (
+                <span className="text-[11px] text-slate-400">
+                  평균 댓글 {item.evidenceMetrics.avgComments}
+                </span>
+              )}
+            </div>
           )}
-          {item.sourceLinks?.length > 0 && (
+
+          {/* 근거 DC 게시글 목록 */}
+          {(item.sourceLinks?.length ?? 0) > 0 && (
             <>
               <button
-                onClick={() => setExpanded(!expanded)}
+                onClick={() => setLinksOpen(!linksOpen)}
                 className="text-[11px] text-blue-400 hover:text-blue-600 mt-1"
               >
-                {expanded ? "접기" : `근거 게시글 보기 (${item.sourceLinks.length})`}
+                {linksOpen ? "접기" : `근거 게시글 보기 (${item.sourceLinks.length})`}
               </button>
-              {expanded && <SourceLinks links={item.sourceLinks} />}
+              {linksOpen && <DcSourceLinks links={item.sourceLinks} />}
             </>
           )}
         </div>
@@ -192,8 +226,8 @@ function UserRow({ item }: { item: TimelineItem }) {
 // ──────────────────────────────────────────
 type WeekGroup = {
   mondayKey: string;
-  officialItems: TimelineItem[];   // patch / event / notice
-  userItems: TimelineItem[];       // user_issue / event_reaction
+  officialItems: TimelineItem[];
+  userItems: TimelineItem[];
   weeklySummary: TimelineItem | null;
 };
 
@@ -203,7 +237,6 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
   const { mondayKey, officialItems, userItems, weeklySummary } = group;
   const sundayKey = getSundayDate(mondayKey);
 
-  // 이번 주 종합 감성 (weekly_summary 우선, 없으면 user_issue에서)
   const sentiment = weeklySummary?.dcSentiment
     ?? userItems.find((i) => i.dcSentiment)?.dcSentiment
     ?? null;
@@ -212,32 +245,41 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
   const hasOfficial = officialItems.length > 0;
   const hasUser = userItems.length > 0;
 
+  // 이 주의 DC 게시글 총합
+  const weekDcTotal = userItems.reduce((sum, i) => sum + (i.evidenceCount || 0), 0)
+    + (weeklySummary?.evidenceCount || 0);
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
       {/* 주차 헤더 */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50">
-        <div>
-          <p className="text-xs text-slate-400 font-mono">{mondayKey} – {sundayKey}</p>
-          <p className="font-semibold text-slate-800 mt-0.5">{formatWeekLabel(mondayKey)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {sentimentCfg && (
-            <span
-              className="text-xs px-2.5 py-1 rounded-full font-medium"
-              style={{ color: sentimentCfg.color, backgroundColor: sentimentCfg.bg }}
-            >
-              유저 반응: {sentimentCfg.label}
-            </span>
-          )}
-          <div className="flex gap-1.5 text-[11px] text-slate-400">
+      <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <p className="text-xs text-slate-400 font-mono">{mondayKey} – {sundayKey}</p>
+            <p className="font-semibold text-slate-800 mt-0.5">{formatWeekLabel(mondayKey)}</p>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {sentimentCfg && (
+              <span
+                className="text-xs px-2.5 py-1 rounded-full font-medium"
+                style={{ color: sentimentCfg.color, backgroundColor: sentimentCfg.bg }}
+              >
+                {sentimentCfg.label}
+              </span>
+            )}
             {hasOfficial && (
-              <span className="bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full">
                 공식 {officialItems.length}건
               </span>
             )}
             {hasUser && (
-              <span className="bg-red-50 text-red-400 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] bg-red-50 text-red-400 px-2 py-0.5 rounded-full">
                 유저 {userItems.length}건
+              </span>
+            )}
+            {weekDcTotal > 0 && (
+              <span className="text-[11px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full font-medium">
+                DC {weekDcTotal}건
               </span>
             )}
           </div>
@@ -245,7 +287,7 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        {/* 공식 업데이트 섹션 */}
+        {/* 공식 업데이트 */}
         {hasOfficial && (
           <section>
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
@@ -259,7 +301,7 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
           </section>
         )}
 
-        {/* 유저 동향 섹션 */}
+        {/* 유저 동향 */}
         {hasUser && (
           <section>
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
@@ -273,7 +315,7 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
           </section>
         )}
 
-        {/* 주간 AI 요약 */}
+        {/* AI 주간 요약 */}
         {weeklySummary && (
           <section className="border-t border-slate-100 pt-3">
             <button
@@ -303,7 +345,7 @@ function WeeklyReportCard({ group }: { group: WeekGroup }) {
 }
 
 // ──────────────────────────────────────────
-// 날짜 선택 시 단일 이벤트 카드 (기존 스타일)
+// 단일 날짜 카드
 // ──────────────────────────────────────────
 function SingleDateCards({ items }: { items: TimelineItem[] }) {
   return (
@@ -311,11 +353,9 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
       {items.map((item) => {
         const cfg = TYPE_CONFIG[item.type];
         const sentiment = item.dcSentiment ? SENTIMENT_CONFIG[item.dcSentiment] : null;
+        const isOfficial = item.type === "official_patch" || item.type === "official_event" || item.type === "official_notice";
         return (
-          <div
-            key={item.id}
-            className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"
-          >
+          <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <span
                 className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -333,17 +373,21 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
               )}
               <span className="text-slate-400 text-xs">{item.date}</span>
               {item.evidenceCount > 0 && (
-                <span className="ml-auto text-xs text-slate-400">게시글 {item.evidenceCount}건</span>
+                <span className="ml-auto text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                  DC {item.evidenceCount}건
+                </span>
               )}
             </div>
             <h3 className="font-semibold text-slate-900 leading-snug">{item.title}</h3>
             {item.summary && (
               <p className="text-slate-500 text-sm mt-1 leading-relaxed">{item.summary}</p>
             )}
-            {item.sourceLinks?.length > 0 && (
+            {(item.sourceLinks?.length ?? 0) > 0 && (
               <div className="mt-3 border-t border-slate-100 pt-3">
-                <p className="text-xs text-slate-400 font-medium mb-1.5">근거 게시글</p>
-                <SourceLinks links={item.sourceLinks} />
+                <p className="text-xs text-slate-500 font-semibold mb-1.5">
+                  {isOfficial ? "📎 포럼 원문" : "📌 근거 DC 게시글"}
+                </p>
+                <DcSourceLinks links={item.sourceLinks} defaultExpanded={isOfficial} />
               </div>
             )}
           </div>
@@ -373,7 +417,6 @@ export default function TimelineCards({ items, emptyMessage, onDateClick }: Prop
     );
   }
 
-  // 날짜 선택 모드: 단일 날짜 아이템들이면 그냥 카드 나열
   const uniqueDates = Array.from(new Set(items.map((i) => i.date)));
   const isSingleDayView = uniqueDates.length === 1;
   if (isSingleDayView) {
@@ -382,42 +425,24 @@ export default function TimelineCards({ items, emptyMessage, onDateClick }: Prop
 
   // 주간 그룹화
   const weekMap = new Map<string, WeekGroup>();
-
   for (const item of items) {
     const key = getMondayKey(item.date);
     if (!weekMap.has(key)) {
-      weekMap.set(key, {
-        mondayKey: key,
-        officialItems: [],
-        userItems: [],
-        weeklySummary: null,
-      });
+      weekMap.set(key, { mondayKey: key, officialItems: [], userItems: [], weeklySummary: null });
     }
     const grp = weekMap.get(key)!;
-
     if (item.type === "weekly_summary") {
-      // 주간 요약은 날짜가 해당 주 범위 어디든 상관없이 그 주에 할당
       grp.weeklySummary = item;
-    } else if (
-      item.type === "official_patch" ||
-      item.type === "official_event" ||
-      item.type === "official_notice"
-    ) {
+    } else if (item.type === "official_patch" || item.type === "official_event" || item.type === "official_notice") {
       grp.officialItems.push(item);
     } else {
-      // user_issue, event_reaction
       grp.userItems.push(item);
     }
   }
 
-  // 날짜순 정렬
   const weeks = Array.from(weekMap.values()).sort((a, b) =>
-    sortDesc
-      ? b.mondayKey.localeCompare(a.mondayKey)
-      : a.mondayKey.localeCompare(b.mondayKey)
+    sortDesc ? b.mondayKey.localeCompare(a.mondayKey) : a.mondayKey.localeCompare(b.mondayKey)
   );
-
-  // 각 섹션 내부도 날짜순 정렬
   weeks.forEach((w) => {
     w.officialItems.sort((a, b) => a.date.localeCompare(b.date));
     w.userItems.sort((a, b) => a.date.localeCompare(b.date));
@@ -433,7 +458,6 @@ export default function TimelineCards({ items, emptyMessage, onDateClick }: Prop
           {sortDesc ? "↓ 최신순" : "↑ 오래된순"}
         </button>
       </div>
-
       <div className="space-y-4">
         {weeks.map((group) => (
           <WeeklyReportCard key={group.mondayKey} group={group} />
