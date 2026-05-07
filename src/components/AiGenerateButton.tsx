@@ -54,17 +54,17 @@ export default function AiGenerateButton({ gameId, fromDate, toDate, onSuccess, 
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="bg-[#8b5cf6] hover:bg-[#7c3aed] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        className="bg-violet-500 hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm px-4 py-2 rounded-lg transition-colors"
       >
         {loading ? "⏳ 요청 중..." : (label || "✨ AI 타임라인 생성")}
       </button>
-      {status && <span className="text-xs text-[#94a3b8]">{status}</span>}
+      {status && <span className="text-xs text-slate-500">{status}</span>}
       {actionsUrl && (
         <a
           href={actionsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-[#8b5cf6] hover:underline"
+          className="text-xs text-violet-500 hover:underline"
         >
           GitHub Actions 진행 상황 →
         </a>

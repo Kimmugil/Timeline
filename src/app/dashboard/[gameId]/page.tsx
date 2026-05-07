@@ -68,30 +68,29 @@ export default function GameTimelinePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <p className="text-[#94a3b8]">{t("dashboard.loading", "로딩 중...")}</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-400">{t("dashboard.loading", "로딩 중...")}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="border-b border-[#2d3748] px-6 py-4 flex items-center gap-4 flex-wrap">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 flex-wrap">
         <button
           onClick={() => router.push("/dashboard")}
-          className="text-[#94a3b8] hover:text-white transition-colors"
+          className="text-slate-400 hover:text-slate-900 transition-colors"
         >
           {t("timeline.back", "← 목록")}
         </button>
-        <h1 className="text-xl font-bold">{game?.name || "게임"} 타임라인</h1>
+        <h1 className="text-xl font-bold text-slate-900">{game?.name || "게임"} 타임라인</h1>
 
         <div className="ml-auto flex items-center gap-3 flex-wrap">
-          {/* 텍스트 갱신 */}
           <button
             onClick={refreshTexts}
             title="ui_text 시트 동기화"
-            className="text-xs text-[#94a3b8] hover:text-white border border-[#2d3748] px-3 py-1.5 rounded-lg"
+            className="text-xs text-slate-400 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg"
           >
             ↻ 텍스트 갱신
           </button>
@@ -102,14 +101,14 @@ export default function GameTimelinePage() {
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="bg-[#1a1f2e] border border-[#2d3748] rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#3b82f6]"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
             />
-            <span className="text-[#94a3b8]">~</span>
+            <span className="text-slate-400">~</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="bg-[#1a1f2e] border border-[#2d3748] rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#3b82f6]"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -126,7 +125,7 @@ export default function GameTimelinePage() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="border border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10 disabled:opacity-50 text-sm px-4 py-2 rounded-lg transition-colors"
+            className="border border-emerald-500 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 text-sm px-4 py-2 rounded-lg transition-colors"
           >
             {exporting ? "내보내는 중..." : t("timeline.export_json", "⬇ JSON 내보내기")}
           </button>
@@ -134,22 +133,22 @@ export default function GameTimelinePage() {
       </header>
 
       {/* 안내 배너 */}
-      <div className="mx-6 mt-4 bg-[#1a1f2e] border border-[#f59e0b]/30 rounded-xl px-5 py-3 text-sm text-[#94a3b8]">
-        <span className="text-[#f59e0b] font-semibold">💡 지표(DAU·매출) 확인 방법: </span>
-        ①&nbsp;JSON 내보내기 → ②&nbsp;<code className="bg-[#0f1117] px-1 rounded text-xs">local-viewer.html</code> 열기 → ③&nbsp;JSON + 지표 CSV 불러오기
+      <div className="mx-6 mt-4 bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-sm text-slate-600">
+        <span className="text-amber-600 font-semibold">💡 지표(DAU·매출) 확인 방법: </span>
+        ①&nbsp;JSON 내보내기 → ②&nbsp;<code className="bg-amber-100 px-1 rounded text-xs">local-viewer.html</code> 열기 → ③&nbsp;JSON + 지표 CSV 불러오기
       </div>
 
       <main className="p-6 space-y-6">
-        {/* Timeline Chart (이벤트 마커만, 지표 없음) */}
-        <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-4">
+        {/* Timeline Chart */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-sm text-[#94a3b8]">
+            <h2 className="font-semibold text-sm text-slate-600">
               {t("timeline.chart_title", "이벤트 타임라인")}
             </h2>
             {selectedDate && (
               <button
                 onClick={() => setSelectedDate(null)}
-                className="text-xs text-[#3b82f6] hover:underline"
+                className="text-xs text-blue-500 hover:underline"
               >
                 {t("timeline.show_all", "전체 보기")}
               </button>
@@ -169,7 +168,7 @@ export default function GameTimelinePage() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 text-xs text-[#94a3b8]">
+        <div className="flex flex-wrap gap-4 text-xs text-slate-500">
           {[
             { type: "official_patch", label: "패치노트", color: "#3b82f6" },
             { type: "official_event", label: "공식 이벤트", color: "#10b981" },
@@ -187,11 +186,11 @@ export default function GameTimelinePage() {
 
         {/* Timeline Cards */}
         <div>
-          <h2 className="font-semibold mb-4">
+          <h2 className="font-semibold text-slate-900 mb-4">
             {selectedDate
               ? `${selectedDate} 이벤트`
-              : t("timeline.cards_title", "이벤트 목록")}
-            <span className="text-[#94a3b8] text-sm font-normal ml-2">
+              : t("timeline.cards_title", "주간 리포트")}
+            <span className="text-slate-400 text-sm font-normal ml-2">
               ({filteredItems.length}건)
             </span>
           </h2>

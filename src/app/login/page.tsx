@@ -32,41 +32,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f1117]">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-slate-900">
             {t("login.title", "게임 이슈 타임라인")}
           </h1>
-          <p className="text-[#94a3b8] text-sm mt-2">
+          <p className="text-slate-500 text-sm mt-2">
             {t("login.subtitle", "내부 분석 대시보드")}
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-8 space-y-4"
+          className="bg-white border border-slate-200 rounded-xl p-8 space-y-4 shadow-sm"
         >
           <div>
-            <label className="block text-sm text-[#94a3b8] mb-2">
+            <label className="block text-sm text-slate-600 mb-2">
               {t("login.password_label", "관리자 비밀번호")}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0f1117] border border-[#2d3748] rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#3b82f6] transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-400"
               placeholder={t("login.password_placeholder", "비밀번호를 입력하세요")}
               autoFocus
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
           >
             {loading ? t("login.loading", "로그인 중...") : t("login.submit", "로그인")}
           </button>

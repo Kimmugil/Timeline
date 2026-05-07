@@ -66,27 +66,27 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="border-b border-[#2d3748] px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("dashboard.title", "게임 이슈 타임라인")}</h1>
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-slate-900">{t("dashboard.title", "게임 이슈 타임라인")}</h1>
         <div className="flex gap-3">
           <button
             onClick={refreshTexts}
             title="ui_text 시트와 동기화"
-            className="text-xs text-[#94a3b8] hover:text-white border border-[#2d3748] px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
           >
             ↻ 텍스트 갱신
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-[#3b82f6] hover:bg-[#2563eb] text-white text-sm px-4 py-2 rounded-lg transition-colors"
+            className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
           >
             {t("dashboard.add_game", "+ 게임 등록")}
           </button>
           <button
             onClick={handleLogout}
-            className="text-[#94a3b8] hover:text-white text-sm px-4 py-2 rounded-lg border border-[#2d3748] transition-colors"
+            className="text-slate-500 hover:text-slate-900 text-sm px-4 py-2 rounded-lg border border-slate-200 transition-colors"
           >
             {t("dashboard.logout", "로그아웃")}
           </button>
@@ -99,15 +99,15 @@ export default function DashboardPage() {
 
         {/* 게임 목록 */}
         {loading ? (
-          <div className="text-[#94a3b8] text-center py-20">
+          <div className="text-slate-400 text-center py-20">
             {t("dashboard.loading", "로딩 중...")}
           </div>
         ) : games.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[#94a3b8] mb-4">{t("dashboard.no_games", "등록된 게임이 없습니다.")}</p>
+            <p className="text-slate-400 mb-4">{t("dashboard.no_games", "등록된 게임이 없습니다.")}</p>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-[#3b82f6] text-white px-6 py-3 rounded-lg"
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
             >
               {t("dashboard.add_first", "첫 번째 게임 등록하기")}
             </button>
@@ -117,14 +117,14 @@ export default function DashboardPage() {
             {games.map((game) => (
               <div
                 key={game.id}
-                className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-5 hover:border-[#3b82f6] transition-colors"
+                className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-400 hover:shadow-sm transition-all"
               >
-                <h2 className="text-lg font-semibold mb-1">{game.name}</h2>
-                <p className="text-[#94a3b8] text-xs mb-4">
+                <h2 className="text-lg font-semibold text-slate-900 mb-1">{game.name}</h2>
+                <p className="text-slate-400 text-xs mb-4">
                   등록일: {new Date(game.created_at).toLocaleDateString("ko-KR")}
                 </p>
 
-                <div className="space-y-1 text-xs text-[#94a3b8] mb-4">
+                <div className="space-y-1 text-xs text-slate-500 mb-4">
                   <StatusDot on={!!game.dc_raw_sheet_id}
                     onText={t("dashboard.status_dc_on", "DC 갤러리 시트 연결됨")}
                     offText={t("dashboard.status_dc_off", "DC 갤러리 시트 미연결")} />
@@ -140,13 +140,13 @@ export default function DashboardPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => router.push(`/dashboard/${game.id}`)}
-                    className="flex-1 bg-[#3b82f6] hover:bg-[#2563eb] text-white text-sm py-2 rounded-lg transition-colors"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors"
                   >
                     {t("dashboard.view_timeline", "타임라인 보기")}
                   </button>
                   <button
                     onClick={() => handleDelete(game.id, game.name)}
-                    className="text-red-400 hover:text-red-300 text-sm px-3 py-2 border border-[#2d3748] rounded-lg transition-colors"
+                    className="text-red-400 hover:text-red-500 text-sm px-3 py-2 border border-slate-200 rounded-lg transition-colors"
                   >
                     {t("dashboard.delete", "삭제")}
                   </button>
@@ -175,7 +175,9 @@ function StatusDot({
 }: {
   on: boolean; onText: string; offText: string; color?: "green" | "blue";
 }) {
-  const dotColor = on ? (color === "blue" ? "bg-blue-400" : "bg-green-400") : "bg-gray-600";
+  const dotColor = on
+    ? (color === "blue" ? "bg-blue-400" : "bg-emerald-400")
+    : "bg-slate-300";
   return (
     <div className="flex items-center gap-2">
       <span className={`w-2 h-2 rounded-full ${dotColor}`} />

@@ -18,13 +18,13 @@ export default function SetupGuide({ steps, title }: Props) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#232938] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
       >
-        <span className="font-semibold text-sm text-[#94a3b8]">📋 {title}</span>
-        <span className="text-[#94a3b8] text-xs">{open ? "▲ 접기" : "▼ 펼치기"}</span>
+        <span className="font-semibold text-sm text-slate-600">📋 {title}</span>
+        <span className="text-slate-400 text-xs">{open ? "▲ 접기" : "▼ 펼치기"}</span>
       </button>
 
       {open && (
@@ -34,13 +34,13 @@ export default function SetupGuide({ steps, title }: Props) {
               key={i}
               className="rounded-lg p-4 border"
               style={{
-                backgroundColor: step.color + "11",
-                borderColor: step.color + "44",
+                backgroundColor: step.color + "10",
+                borderColor: step.color + "33",
               }}
             >
               <div className="text-2xl mb-2">{step.icon}</div>
-              <p className="font-semibold text-sm text-white mb-1">{step.title}</p>
-              <p className="text-[#94a3b8] text-xs leading-relaxed">{step.desc}</p>
+              <p className="font-semibold text-sm text-slate-800 mb-1">{step.title}</p>
+              <p className="text-slate-500 text-xs leading-relaxed">{step.desc}</p>
             </div>
           ))}
         </div>
