@@ -359,9 +359,10 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
 type Props = {
   items: TimelineItem[];
   emptyMessage?: string;
+  onDateClick?: (date: string) => void;
 };
 
-export default function TimelineCards({ items, emptyMessage }: Props) {
+export default function TimelineCards({ items, emptyMessage, onDateClick }: Props) {
   const [sortDesc, setSortDesc] = useState(true);
 
   if (items.length === 0) {
