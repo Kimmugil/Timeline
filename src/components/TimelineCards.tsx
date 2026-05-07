@@ -90,12 +90,19 @@ function DcSourceLinks({ links, defaultExpanded = false }: { links: SourceLink[]
 // 공식 이벤트 행 (patch / event / notice)
 // ──────────────────────────────────────────
 function OfficialRow({ item }: { item: TimelineItem }) {
-  const [detailOpen, setDetailOpen] = useState(false);
   const cfg = TYPE_CONFIG[item.type];
   const hasLinks = (item.sourceLinks?.length ?? 0) > 0;
 
+  // detail을 bullet 배열로 파싱
+  const bullets = item.detail
+    ? item.detail
+        .split("\n")
+        .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
+        .filter(Boolean)
+    : [];
+
   return (
-    <div className="py-2.5 border-b border-slate-100 last:border-0">
+    <div className="py-3 border-b border-slate-100 last:border-0">
       <div className="flex items-start gap-2">
         <span
           className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded mt-0.5"
@@ -104,11 +111,37 @@ function OfficialRow({ item }: { item: TimelineItem }) {
           {cfg.label}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 leading-snug">{item.title}</p>
+          {/* 제목 + 날짜 */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-slate-800 leading-snug">{item.title}</p>
+            <span className="text-[11px] text-slate-400 shrink-0">{item.date.slice(5)}</span>
+          </div>
 
-          {/* 포럼 원문 링크 – 항상 표시 */}
+          {/* 한 줄 요약 */}
+          {item.summary && (
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.summary}</p>
+          )}
+
+          {/* 주요 내용 bullet – 기본 표시 */}
+          {bullets.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {bullets.map((b, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                  <span className="mt-1 shrink-0 w-1 h-1 rounded-full bg-slate-400" />
+                  {b}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* 데이터 없을 때 안내 */}
+          {!item.summary && bullets.length === 0 && (
+            <p className="text-xs text-slate-400 mt-1 italic">AI 요약 없음 — 재생성하면 표시됩니다</p>
+          )}
+
+          {/* 포럼 원문 링크 */}
           {hasLinks && (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {item.sourceLinks.map((link, i) => (
                 <a
                   key={i}
@@ -122,30 +155,7 @@ function OfficialRow({ item }: { item: TimelineItem }) {
               ))}
             </div>
           )}
-
-          {/* AI 요약 */}
-          {item.summary && (
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.summary}</p>
-          )}
-
-          {/* 주요 내용 접기/펼치기 */}
-          {item.detail && (
-            <>
-              {detailOpen && (
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed whitespace-pre-wrap border-t border-slate-100 pt-1">
-                  {item.detail}
-                </p>
-              )}
-              <button
-                onClick={() => setDetailOpen(!detailOpen)}
-                className="text-[11px] text-blue-400 hover:text-blue-600 mt-1"
-              >
-                {detailOpen ? "접기" : "주요 내용 보기"}
-              </button>
-            </>
-          )}
         </div>
-        <span className="text-[11px] text-slate-400 shrink-0">{item.date.slice(5)}</span>
       </div>
     </div>
   );
@@ -354,6 +364,9 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
         const cfg = TYPE_CONFIG[item.type];
         const sentiment = item.dcSentiment ? SENTIMENT_CONFIG[item.dcSentiment] : null;
         const isOfficial = item.type === "official_patch" || item.type === "official_event" || item.type === "official_notice";
+        const bullets = isOfficial && item.detail
+          ? item.detail.split("\n").map((l) => l.replace(/^[•\-\*]\s*/, "").trim()).filter(Boolean)
+          : [];
         return (
           <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -381,6 +394,20 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
             <h3 className="font-semibold text-slate-900 leading-snug">{item.title}</h3>
             {item.summary && (
               <p className="text-slate-500 text-sm mt-1 leading-relaxed">{item.summary}</p>
+            )}
+            {/* 공식 포스트: 주요 내용 bullet 표시 */}
+            {bullets.length > 0 && (
+              <ul className="mt-2 space-y-0.5">
+                {bullets.map((b, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                    <span className="mt-1 shrink-0 w-1 h-1 rounded-full bg-slate-400" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {isOfficial && !item.summary && bullets.length === 0 && (
+              <p className="text-xs text-slate-400 mt-1 italic">AI 요약 없음 — 재생성하면 표시됩니다</p>
             )}
             {(item.sourceLinks?.length ?? 0) > 0 && (
               <div className="mt-3 border-t border-slate-100 pt-3">
