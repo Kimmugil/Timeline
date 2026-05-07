@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { getGameById } from "@/lib/admin-sheet";
 import { readTimelineFromSheet } from "@/lib/sheets";
 
@@ -7,10 +6,6 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { gameId: string } }
 ) {
-  if (!await getSession(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const game = await getGameById(params.gameId);
   if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
