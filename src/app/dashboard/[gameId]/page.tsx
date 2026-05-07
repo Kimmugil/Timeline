@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { GameConfig, TimelineItem, TimelineItemType } from "@/lib/types";
 import TimelineCards from "@/components/TimelineCards";
 import CalendarView from "@/components/CalendarView";
-import AiGenerateButton from "@/components/AiGenerateButton";
 
 // ──────────────────────────────────────────
 // 이벤트 유형 요약 배지
@@ -73,13 +72,6 @@ export default function GameTimelinePage() {
   // 캘린더 현재 월 (기본: 이번 달)
   const todayStr = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   const [currentMonth, setCurrentMonth] = useState(todayStr);
-
-  // AI 생성 기간 (헤더 필터)
-  const today = new Date();
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(today.getMonth() - 3);
-  const [fromDate, setFromDate] = useState(threeMonthsAgo.toISOString().slice(0, 10));
-  const [toDate, setToDate]     = useState(today.toISOString().slice(0, 10));
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -150,36 +142,13 @@ export default function GameTimelinePage() {
           {game?.name || "게임"} 타임라인
         </h1>
 
-        <div className="ml-auto flex items-center gap-2.5 flex-wrap">
-          {/* AI 생성 날짜 범위 */}
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className="text-[11px] text-slate-400 hidden sm:inline">AI 생성 범위</span>
-            <input
-              type="date"
-              lang="en"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-400"
-            />
-            <span className="text-slate-300">–</span>
-            <input
-              type="date"
-              lang="en"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-400"
-            />
-          </div>
-
-          {game && (
-            <AiGenerateButton
-              gameId={game.id}
-              fromDate={fromDate}
-              toDate={toDate}
-              onSuccess={loadData}
-              label="✨ AI 생성"
-            />
-          )}
+        <div className="ml-auto">
+          <button
+            onClick={() => router.push("/admin")}
+            className="text-slate-400 hover:text-slate-700 text-xs border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            🔑 관리자
+          </button>
         </div>
       </header>
 

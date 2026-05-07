@@ -5,15 +5,16 @@ import { useState, FormEvent } from "react";
 type Props = {
   onClose: () => void;
   onSuccess: () => void;
+  adminPassword?: string; // 관리자 패널에서 열 때 미리 주입
 };
 
-export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
+export default function GameRegistrationModal({ onClose, onSuccess, adminPassword: prefilledPw }: Props) {
   const [form, setForm] = useState({
     name: "",
     dcRawSheetId: "",
     dcSheetTab: "시트1",
     forumRawSheetId: "",
-    adminPassword: "",
+    adminPassword: prefilledPw || "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -99,19 +100,21 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
             />
           </Field>
 
-          <div className="border-t border-slate-100 pt-4">
-            <Field label="🔑 관리자 비밀번호 *">
-              <input
-                type="password"
-                required
-                value={form.adminPassword}
-                onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
-                className={inputClass}
-                placeholder="관리자 비밀번호를 입력하세요"
-                autoComplete="current-password"
-              />
-            </Field>
-          </div>
+          {!prefilledPw && (
+            <div className="border-t border-slate-100 pt-4">
+              <Field label="🔑 관리자 비밀번호 *">
+                <input
+                  type="password"
+                  required
+                  value={form.adminPassword}
+                  onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
+                  className={inputClass}
+                  placeholder="관리자 비밀번호를 입력하세요"
+                  autoComplete="current-password"
+                />
+              </Field>
+            </div>
+          )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 

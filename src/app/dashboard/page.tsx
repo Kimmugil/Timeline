@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameConfig } from "@/lib/types";
-import GameRegistrationModal from "@/components/GameRegistrationModal";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [games, setGames] = useState<GameConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
 
   async function fetchGames() {
     const res = await fetch("/api/games");
@@ -30,10 +28,10 @@ export default function DashboardPage() {
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-900">게임 이슈 타임라인</h1>
         <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          onClick={() => router.push("/admin")}
+          className="text-slate-400 hover:text-slate-700 text-xs border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
         >
-          + 게임 등록
+          🔑 관리자
         </button>
       </header>
 
@@ -44,10 +42,10 @@ export default function DashboardPage() {
           <div className="text-center py-20">
             <p className="text-slate-400 mb-4">등록된 게임이 없습니다.</p>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => router.push("/admin")}
               className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
             >
-              첫 번째 게임 등록하기
+              관리자 패널에서 등록하기
             </button>
           </div>
         ) : (
@@ -95,15 +93,6 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {showModal && (
-        <GameRegistrationModal
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            setShowModal(false);
-            fetchGames();
-          }}
-        />
-      )}
     </div>
   );
 }
