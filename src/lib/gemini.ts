@@ -47,47 +47,67 @@ async function callGemini(prompt: string): Promise<unknown> {
   return JSON.parse(match[0]);
 }
 
-// 공식 이벤트 → 타임라인 아이템 (AI 불필요)
-export function forumPostsToTimelineItems(
+// 공식 이벤트/패치/공지 AI 요약
+export async function summarizeForumGroup(
+  gameName: string,
+  date: string,
+  rawType: string,
   posts: ForumPost[],
   gameId: string
-): TimelineItem[] {
-  const byDateType: Record<string, ForumPost[]> = {};
-  for (const post of posts) {
-    const key = `${post.date}__${post.type}`;
-    if (!byDateType[key]) byDateType[key] = [];
-    byDateType[key].push(post);
-  }
-
+): Promise<TimelineItem> {
   const typeMap = {
     patch: "official_patch",
     event: "official_event",
     notice: "official_notice",
   } as const;
+  const type = typeMap[rawType as keyof typeof typeMap];
+  const label = { patch: "패치노트", event: "이벤트", notice: "공지" }[rawType] ?? rawType;
 
-  return Object.entries(byDateType).map(([key, datePosts]) => {
-    const [date, rawType] = key.split("__");
-    const type = typeMap[rawType as keyof typeof typeMap];
-    const label = { patch: "패치노트", event: "이벤트", notice: "공지" }[rawType];
-    const titles = datePosts.map((p) => p.title);
+  const sourceLinks: SourceLink[] = posts
+    .slice(0, 5)
+    .filter((p) => p.link)
+    .map((p) => ({ url: p.link, title: p.title, views: p.views, likes: p.likes }));
 
-    const sourceLinks: SourceLink[] = datePosts
-      .slice(0, 5)
-      .filter((p) => p.link)
-      .map((p) => ({ url: p.link, title: p.title, views: p.views, likes: p.likes }));
+  const postText = posts
+    .map((p) => `제목: ${p.title}\n내용: ${p.body.slice(0, 600)}`)
+    .join("\n\n---\n\n");
+
+  const prompt = `당신은 게임 공식 공지 분석가입니다.
+아래는 ${gameName}의 ${date} ${label} 게시글입니다.
+
+${postText}
+
+다음 JSON만 반환하세요 (다른 텍스트 없이):
+{
+  "title": "핵심 한 줄 제목 (30자 이내, ${label} 태그 제외하고 내용만)",
+  "summary": "한 문장 요약 (60자 이내)",
+  "key_points": ["핵심 변경/내용 1 (50자 이내)", "핵심 변경/내용 2", "..."]
+}
+
+[규칙]
+- title: 가장 중요한 변경/이벤트를 압축한 핵심 한 줄. "${label}"이라는 단어 반복 금지
+- key_points: 유저에게 중요한 내용만 bullet, 최대 5개
+- 불필요한 홍보 문구 제거하고 핵심만`;
+
+  try {
+    const parsed = (await callGemini(prompt)) as {
+      title: string;
+      summary: string;
+      key_points: string[];
+    };
+
+    const detail = (parsed.key_points || [])
+      .map((p) => `• ${p}`)
+      .join("\n");
 
     return {
       id: `forum-${date}-${rawType}`,
       gameId,
       date,
       type,
-      title: datePosts.length === 1 ? datePosts[0].title : `${datePosts.length}개 ${label}`,
-      summary:
-        titles.slice(0, 3).join(", ") +
-        (titles.length > 3 ? ` 외 ${titles.length - 3}개` : ""),
-      detail: datePosts
-        .map((p) => `• ${p.title}\n${p.body.slice(0, 500)}`)
-        .join("\n\n"),
+      title: parsed.title || posts[0]?.title || label,
+      summary: parsed.summary || "",
+      detail,
       sourceLinks,
       evidenceCount: 0,
       evidenceMetrics: null,
@@ -95,7 +115,25 @@ export function forumPostsToTimelineItems(
       dcSentiment: null,
       createdAt: new Date().toISOString(),
     };
-  });
+  } catch (err) {
+    console.error(`Forum summarize error (${date} ${rawType}):`, err);
+    // fallback: AI 실패 시 원본 그대로
+    return {
+      id: `forum-${date}-${rawType}`,
+      gameId,
+      date,
+      type,
+      title: posts.length === 1 ? posts[0].title : `${posts.length}개 ${label}`,
+      summary: posts.map((p) => p.title).slice(0, 3).join(", "),
+      detail: posts.map((p) => `• ${p.title}\n${p.body.slice(0, 300)}`).join("\n\n"),
+      sourceLinks,
+      evidenceCount: 0,
+      evidenceMetrics: null,
+      relatedEventDate: null,
+      dcSentiment: null,
+      createdAt: new Date().toISOString(),
+    };
+  }
 }
 
 // 주간 DC 동향 요약
@@ -390,8 +428,19 @@ export async function generateTimeline(
     (p) => p.date >= fromDate && p.date <= toDate
   );
 
-  // 1. 공식 이벤트 → 직접 변환
-  const officialItems = forumPostsToTimelineItems(filteredForum, game.id);
+  // 1. 공식 이벤트 → AI 요약 변환
+  const byDateType: Record<string, { rawType: string; posts: ForumPost[] }> = {};
+  for (const post of filteredForum) {
+    const key = `${post.date}__${post.type}`;
+    if (!byDateType[key]) byDateType[key] = { rawType: post.type, posts: [] };
+    byDateType[key].posts.push(post);
+  }
+  const officialItems: TimelineItem[] = [];
+  for (const [key, { rawType, posts }] of Object.entries(byDateType)) {
+    const [date] = key.split("__");
+    const item = await summarizeForumGroup(game.name, date, rawType, posts, game.id);
+    officialItems.push(item);
+  }
 
   // 2. 이벤트 날짜별 DC 반응 분석
   const eventDates = Array.from(new Set(filteredForum.map((p) => p.date)));
