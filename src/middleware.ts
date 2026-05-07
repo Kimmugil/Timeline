@@ -1,41 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 
-const getJwtSecret = () =>
-  new TextEncoder().encode(
-    process.env.JWT_SECRET || "fallback-dev-only-change-in-production-32chars"
-  );
-
-const COOKIE_NAME = "__session";
-const PUBLIC = ["/login", "/api/auth/login", "/api/ui-text"];
-
-export async function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname;
-
-  if (PUBLIC.some((p) => path.startsWith(p))) {
-    return NextResponse.next();
-  }
-
-  const token = req.cookies.get(COOKIE_NAME)?.value;
-
-  if (!token) {
-    if (path.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  try {
-    await jwtVerify(token, getJwtSecret());
-    return NextResponse.next();
-  } catch {
-    if (path.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const res = NextResponse.redirect(new URL("/login", req.url));
-    res.cookies.delete(COOKIE_NAME);
-    return res;
-  }
+// 모든 페이지/API 공개 접근 허용
+// 관리자 작업(게임 등록/삭제, AI 생성)은 각 API 라우트에서 비밀번호로 개별 검증
+export async function middleware(_req: NextRequest) {
+  return NextResponse.next();
 }
 
 export const config = {

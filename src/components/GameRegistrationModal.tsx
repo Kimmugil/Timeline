@@ -13,6 +13,7 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
     dcRawSheetId: "",
     dcSheetTab: "시트1",
     forumRawSheetId: "",
+    adminPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +36,7 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
         dcRawSheetId: extractSheetId(form.dcRawSheetId),
         dcSheetTab: form.dcSheetTab || "시트1",
         forumRawSheetId: extractSheetId(form.forumRawSheetId),
+        adminPassword: form.adminPassword,
       }),
     });
 
@@ -67,10 +69,7 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
             />
           </Field>
 
-          <Field
-            label="DC 갤러리 raw 시트"
-            hint="구글 시트 URL 또는 ID를 입력하세요"
-          >
+          <Field label="DC 갤러리 raw 시트" hint="구글 시트 URL 또는 ID">
             <input
               type="text"
               value={form.dcRawSheetId}
@@ -80,10 +79,7 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
             />
           </Field>
 
-          <Field
-            label="DC 시트 탭 이름"
-            hint="기본값: 시트1"
-          >
+          <Field label="DC 시트 탭 이름" hint="기본값: 시트1">
             <input
               type="text"
               value={form.dcSheetTab}
@@ -93,10 +89,7 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
             />
           </Field>
 
-          <Field
-            label="포럼 raw 시트"
-            hint="공지사항/패치노트/이벤트 탭이 있는 시트"
-          >
+          <Field label="포럼 raw 시트" hint="공지사항/패치노트/이벤트 탭이 있는 시트">
             <input
               type="text"
               value={form.forumRawSheetId}
@@ -105,6 +98,20 @@ export default function GameRegistrationModal({ onClose, onSuccess }: Props) {
               placeholder="https://docs.google.com/spreadsheets/d/..."
             />
           </Field>
+
+          <div className="border-t border-slate-100 pt-4">
+            <Field label="🔑 관리자 비밀번호 *">
+              <input
+                type="password"
+                required
+                value={form.adminPassword}
+                onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
+                className={inputClass}
+                placeholder="관리자 비밀번호를 입력하세요"
+                autoComplete="current-password"
+              />
+            </Field>
+          </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 

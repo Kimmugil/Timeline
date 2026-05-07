@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth";
 import { getGameById } from "@/lib/admin-sheet";
 
 const GITHUB_REPO = "Kimmugil/Timeline";
@@ -9,23 +9,22 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { gameId: string } }
 ) {
-  if (!await getSession(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = (await req.json()) as {
+    fromDate: string;
+    toDate: string;
+    adminPassword?: string;
+  };
+
+  if (!await verifyPassword(body.adminPassword || "")) {
+    return NextResponse.json({ error: "비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
   const game = await getGameById(params.gameId);
   if (!game) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { fromDate, toDate } = (await req.json()) as {
-    fromDate: string;
-    toDate: string;
-  };
-
+  const { fromDate, toDate } = body;
   if (!fromDate || !toDate) {
-    return NextResponse.json(
-      { error: "fromDate, toDate가 필요합니다." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "fromDate, toDate가 필요합니다." }, { status: 400 });
   }
 
   const token = process.env.GITHUB_DISPATCH_TOKEN;
@@ -47,11 +46,7 @@ export async function POST(
       },
       body: JSON.stringify({
         ref: "main",
-        inputs: {
-          game_id: params.gameId,
-          from_date: fromDate,
-          to_date: toDate,
-        },
+        inputs: { game_id: params.gameId, from_date: fromDate, to_date: toDate },
       }),
     }
   );
