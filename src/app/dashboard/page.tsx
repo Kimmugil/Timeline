@@ -24,26 +24,6 @@ export default function DashboardPage() {
     fetchGames();
   }, []);
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`"${name}" 게임을 삭제하시겠습니까?`)) return;
-
-    const adminPassword = window.prompt("관리자 비밀번호를 입력하세요");
-    if (adminPassword === null) return; // 취소
-
-    const res = await fetch(`/api/games/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminPassword }),
-    });
-
-    if (res.ok) {
-      fetchGames();
-    } else {
-      const data = await res.json();
-      alert(data.error || "삭제 실패");
-    }
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* 헤더 */}
@@ -107,12 +87,6 @@ export default function DashboardPage() {
                     className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition-colors"
                   >
                     타임라인 보기
-                  </button>
-                  <button
-                    onClick={() => handleDelete(game.id, game.name)}
-                    className="text-red-400 hover:text-red-500 text-sm px-3 py-2 border border-slate-200 rounded-lg transition-colors"
-                  >
-                    삭제
                   </button>
                 </div>
               </div>

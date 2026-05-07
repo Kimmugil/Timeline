@@ -69,7 +69,6 @@ export default function GameTimelinePage() {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [loading, setLoading]         = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [exporting, setExporting]     = useState(false);
 
   // 캘린더 현재 월 (기본: 이번 달)
   const todayStr = new Date().toISOString().slice(0, 7); // "YYYY-MM"
@@ -121,23 +120,6 @@ export default function GameTimelinePage() {
     setSelectedDate(null);
   }
 
-  async function handleExport() {
-    setExporting(true);
-    const res = await fetch(`/api/timeline/${gameId}/export`);
-    if (res.ok) {
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
-      a.download = `timeline_${game?.slug || gameId}_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      alert("내보내기 실패: 먼저 AI 타임라인을 생성해주세요.");
-    }
-    setExporting(false);
-  }
-
   // 카드에 표시할 아이템:
   // - 날짜 선택 시: 해당 날짜
   // - 아니면: 현재 캘린더 월 전체
@@ -174,6 +156,7 @@ export default function GameTimelinePage() {
             <span className="text-[11px] text-slate-400 hidden sm:inline">AI 생성 범위</span>
             <input
               type="date"
+              lang="en"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-400"
@@ -181,6 +164,7 @@ export default function GameTimelinePage() {
             <span className="text-slate-300">–</span>
             <input
               type="date"
+              lang="en"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm focus:outline-none focus:border-blue-400"
@@ -196,14 +180,6 @@ export default function GameTimelinePage() {
               label="✨ AI 생성"
             />
           )}
-
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="border border-emerald-400 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 text-sm px-3 py-1.5 rounded-lg transition-colors"
-          >
-            {exporting ? "내보내는 중..." : "⬇ JSON"}
-          </button>
         </div>
       </header>
 

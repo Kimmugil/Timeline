@@ -226,7 +226,7 @@ ${formatDcPosts(sortedPosts, 40)}
   }
 }
 
-// 공식 이벤트 날짜 전후 DC 반응 분석
+// 공식 이벤트/업데이트에 대한 DC 유저 반응 분석
 export async function analyzeEventReaction(
   gameName: string,
   eventDate: string,
@@ -236,71 +236,101 @@ export async function analyzeEventReaction(
 ): Promise<TimelineItem | null> {
   if (dcPosts.length < 3 || events.length === 0) return null;
 
-  const sortedPosts = [...dcPosts].sort(byEngagement).slice(0, 30);
+  // 이벤트 키워드 추출 (제목에서 의미있는 단어만)
+  const stopWords = new Set(["및", "안내", "업데이트", "이벤트", "패치", "공지", "진행중", "완료", "예정", "이번", "추가", "변경"]);
+  const eventKeywords = events
+    .flatMap((e) => e.title.replace(/[\[\]()【】]/g, " ").split(/\s+/))
+    .filter((w) => w.length >= 2 && !stopWords.has(w));
+
+  // 키워드 관련도 점수로 DC 게시글 정렬: 이벤트 관련 글 우선 샘플링
+  const scored = dcPosts.map((p) => {
+    const text = (p.title + " " + p.body).toLowerCase();
+    const score = eventKeywords.filter((kw) => text.includes(kw.toLowerCase())).length;
+    return { post: p, score };
+  });
+  scored.sort((a, b) =>
+    b.score !== a.score
+      ? b.score - a.score
+      : byEngagement(a.post, b.post)
+  );
+
+  // 관련 게시글 최대 30개 (관련도 높은 것 우선, 최소 참여도 기준 포함)
+  const relevantPosts = scored
+    .filter((s) => s.score > 0 || s.post.views >= 100 || s.post.comments >= 5)
+    .slice(0, 30)
+    .map((s) => s.post);
+
+  if (relevantPosts.length < 2) return null;
+
+  const eventSummary = events.map((e) => `- ${e.title}`).join("\n");
 
   const prompt = `당신은 게임 커뮤니티 분석가입니다.
-${gameName}에서 ${eventDate}에 다음 공식 이벤트/공지가 발생했습니다.
+${gameName}에서 ${eventDate}에 다음 공식 이벤트/공지/패치가 있었습니다.
 
-[공식 이벤트/공지]
+[공식 이벤트/공지/패치]
 ${formatForumPosts(events)}
 
-아래는 이벤트 전후 3일간 DC 갤러리 주요 게시글입니다:
+아래는 이 시기 DC 갤러리에서 해당 내용과 관련된 게시글입니다:
 
-[DC 갤러리 게시글]
-${formatDcPosts(sortedPosts, 30)}
+[DC 갤러리 관련 게시글]
+${formatDcPosts(relevantPosts, 30)}
 
 다음 JSON만 반환하세요 (다른 텍스트 없이):
 {
-  "reaction_summary": "유저 반응 요약 (150자 이내)",
+  "reaction_title": "유저들이 실제로 반응한 핵심 주제 (예: '신규 카드팩 보상 부족 논란', '밸런스 패치 후 캐릭터 강화 환급 요구', '이벤트 보상 좋다는 반응')",
+  "reaction_summary": "구체적인 유저 반응 내용 (150자 이내, 무슨 점에 대해 어떻게 반응했는지)",
   "sentiment": "positive/negative/neutral/mixed",
-  "key_mentions": ["키워드1", "키워드2"],
+  "key_mentions": ["유저들이 많이 언급한 키워드1", "키워드2"],
   "direct_mentions": true 또는 false,
-  "confidence_note": "직접 언급 있음 OR 시점 유사성으로 추정",
   "top_posts": [
     {"url": "게시글링크", "title": "게시글제목", "views": 조회수, "comments": 댓글수, "likes": 추천수}
   ]
 }
 
-[top_posts 규칙 - 반드시 준수]
-- 반드시 위에 제공된 게시글 목록에 있는 URL과 제목만 사용 (URL 변형/생성 절대 금지)
-- 해당 이벤트를 직접 언급하거나 명백히 반응한 게시글 1~5개만 선택
-- 이벤트와 관련 없는 게시글은 포함하지 말 것
-- direct_mentions가 false이면 top_posts는 빈 배열로
-
-[추가 규칙]
-- DC에서 이벤트를 직접 언급한 경우만 direct_mentions:true
-- 근거 없는 추측 금지`;
+[규칙 - 반드시 준수]
+- reaction_title: 날짜 금지. 이벤트명을 반복하지 말고 유저 반응의 핵심을 한 줄로
+- top_posts: 위 게시글 목록의 URL만 사용 (URL 변형/생성 절대 금지)
+- top_posts: 해당 이벤트를 직접 다루는 게시글 1~5개, 관련 없으면 빈 배열
+- direct_mentions: DC에서 해당 이벤트/패치를 직접 언급한 경우만 true
+- 공식 이벤트가 없다면: 이 기간 DC에서 가장 화제였던 유저 자체 이슈로 대체`;
 
   try {
     const parsed = (await callGemini(prompt)) as {
+      reaction_title: string;
       reaction_summary: string;
       sentiment: string;
       key_mentions: string[];
       direct_mentions: boolean;
-      confidence_note: string;
       top_posts?: { url: string; title: string; views: number; comments: number; likes: number }[];
     };
 
-    const validUrls = new Set(sortedPosts.map((p) => p.link));
+    const validUrls = new Set(relevantPosts.map((p) => p.link));
     const sourceLinks: SourceLink[] = (parsed.top_posts || [])
       .filter((p) => p.url && validUrls.has(p.url))
       .slice(0, 5)
       .map((p) => ({ url: p.url, title: p.title, views: p.views, comments: p.comments, likes: p.likes }));
+
+    // 키워드를 detail에 포함
+    const keywordStr = (parsed.key_mentions || []).join(", ");
+    const detail = keywordStr ? `주요 키워드: ${keywordStr}` : "";
+
+    // 제목: AI 생성 제목 우선, 없으면 이벤트 제목 기반 fallback
+    const fallbackTitle = events.map((e) => e.title.replace(/[\[\]【】]/g, "").trim()).slice(0, 2).join(" · ") + " 유저 반응";
 
     return {
       id: `reaction-${eventDate}`,
       gameId,
       date: eventDate,
       type: "event_reaction",
-      title: `${eventDate} 이벤트 유저 반응`,
+      title: parsed.reaction_title || fallbackTitle,
       summary: parsed.reaction_summary || "",
-      detail: `신뢰도: ${parsed.confidence_note || ""}\n키워드: ${(parsed.key_mentions || []).join(", ")}`,
+      detail,
       sourceLinks,
-      evidenceCount: dcPosts.length,
+      evidenceCount: relevantPosts.length,
       evidenceMetrics: {
-        postCount: dcPosts.length,
-        avgViews: Math.round(dcPosts.reduce((s, p) => s + p.views, 0) / dcPosts.length),
-        avgComments: Math.round(dcPosts.reduce((s, p) => s + p.comments, 0) / dcPosts.length),
+        postCount: relevantPosts.length,
+        avgViews: Math.round(relevantPosts.reduce((s, p) => s + p.views, 0) / relevantPosts.length),
+        avgComments: Math.round(relevantPosts.reduce((s, p) => s + p.comments, 0) / relevantPosts.length),
       },
       relatedEventDate: eventDate,
       dcSentiment: parsed.sentiment as TimelineItem["dcSentiment"],
