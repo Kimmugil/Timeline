@@ -41,26 +41,26 @@ export default function DashboardPage() {
   const guideSteps = [
     {
       icon: "🎮",
-      title: t("guide.step1_title", "① 게임 등록"),
-      desc: t("guide.step1_desc", "DC 갤러리 시트와 포럼 시트를 연결하고 게임을 등록하세요."),
+      title: "① 게임 등록",
+      desc: "DC 갤러리 시트와 공식 포럼 시트(공지/패치/이벤트)를 연결하고 게임을 등록하세요.",
       color: "#3b82f6",
     },
     {
       icon: "✨",
-      title: t("guide.step2_title", "② AI 타임라인 생성"),
-      desc: t("guide.step2_desc", "기간을 선택하고 AI 분석 버튼을 눌러 타임라인을 생성하세요."),
+      title: "② AI 타임라인 생성",
+      desc: "분석할 기간을 설정하고 AI 생성 버튼을 누르세요. GitHub Actions에서 자동 분석됩니다.",
       color: "#8b5cf6",
     },
     {
-      icon: "⬇",
-      title: t("guide.step3_title", "③ JSON 내보내기"),
-      desc: t("guide.step3_desc", "생성된 타임라인을 JSON 파일로 다운로드하세요."),
+      icon: "📅",
+      title: "③ 캘린더로 탐색",
+      desc: "월 캘린더에서 이벤트가 있는 날짜를 확인하고 클릭해 상세 내용을 바로 볼 수 있어요.",
       color: "#10b981",
     },
     {
-      icon: "📊",
-      title: t("guide.step4_title", "④ 로컬 뷰어에서 지표 확인"),
-      desc: t("guide.step4_desc", "local-viewer.html을 열고 JSON과 지표 CSV를 불러와 차트를 확인하세요."),
+      icon: "📋",
+      title: "④ 주간 리포트 확인",
+      desc: "공식 업데이트와 유저 동향이 주차별로 묶여 한눈에 보입니다. JSON으로 내보내기도 가능해요.",
       color: "#f59e0b",
     },
   ];
