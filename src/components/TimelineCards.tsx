@@ -114,7 +114,9 @@ function OfficialRow({ item }: { item: TimelineItem }) {
           {/* 제목 + 날짜 */}
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-semibold text-slate-800 leading-snug">{item.title}</p>
-            <span className="text-[11px] text-slate-400 shrink-0">{item.date.slice(5)}</span>
+            <span className="text-[11px] text-slate-400 shrink-0">
+              {item.date.slice(5)}{item.time ? ` ${item.time}` : ""}
+            </span>
           </div>
 
           {/* 한 줄 요약 */}
@@ -384,7 +386,9 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
                   {sentiment.label}
                 </span>
               )}
-              <span className="text-slate-400 text-xs">{item.date}</span>
+              <span className="text-slate-400 text-xs">
+                {item.date}{item.time ? ` ${item.time}` : ""}
+              </span>
               {item.evidenceCount > 0 && (
                 <span className="ml-auto text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
                   DC {item.evidenceCount}건

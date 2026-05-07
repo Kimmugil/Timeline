@@ -23,6 +23,13 @@ function parseKoreanDate(dateStr: string): string {
   return match ? match[1] : "";
 }
 
+function parseKoreanTime(dateStr: string): string {
+  if (!dateStr) return "";
+  const match = String(dateStr).match(/(\d{1,2}):(\d{2})/);
+  if (!match) return "";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
 function toInt(val: unknown): number {
   return parseInt(String(val || "0").replace(/[^0-9]/g, "")) || 0;
 }
@@ -67,8 +74,10 @@ export async function readForumSheet(sheetId: string): Promise<ForumPost[]> {
       const row = rows[i] as unknown[];
       if (!row || row.length === 0) continue;
 
-      const date = parseKoreanDate(String(row[idxDate] ?? ""));
+      const rawDate = String(row[idxDate] ?? "");
+      const date = parseKoreanDate(rawDate);
       if (!date) continue;
+      const time = parseKoreanTime(rawDate);
 
       // body may be embedded in the same cell or a later column
       const rawBody =
@@ -80,6 +89,7 @@ export async function readForumSheet(sheetId: string): Promise<ForumPost[]> {
         body: rawBody,
         author: String(row[idxAuthor] ?? ""),
         date,
+        time: time || undefined,
         link: String(row[idxLink] ?? ""),
         views: toInt(row[idxViews]),
         likes: toInt(row[idxLikes]),
@@ -159,7 +169,7 @@ export async function readDcSheet(
 const TIMELINE_HEADERS = [
   "id", "date", "type", "title", "summary", "detail",
   "source_links", "evidence_count", "evidence_metrics",
-  "related_event_date", "dc_sentiment", "created_at",
+  "related_event_date", "dc_sentiment", "created_at", "time",
 ];
 
 export async function writeTimelineToSheet(sheetId: string, items: TimelineItem[]) {
@@ -179,7 +189,7 @@ export async function writeTimelineToSheet(sheetId: string, items: TimelineItem[
 
   await sheets.spreadsheets.values.clear({
     spreadsheetId: sheetId,
-    range: "timeline!A:L",
+    range: "timeline!A:M",
   });
 
   const dataRows = items.map((item) => [
@@ -195,6 +205,7 @@ export async function writeTimelineToSheet(sheetId: string, items: TimelineItem[
     item.relatedEventDate || "",
     item.dcSentiment || "",
     item.createdAt,
+    item.time || "",
   ]);
 
   await sheets.spreadsheets.values.update({
@@ -212,7 +223,7 @@ export async function readTimelineFromSheet(sheetId: string): Promise<TimelineIt
   try {
     response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: "timeline!A:L",
+      range: "timeline!A:M",
     });
   } catch {
     return [];
@@ -256,6 +267,7 @@ export async function readTimelineFromSheet(sheetId: string): Promise<TimelineIt
       relatedEventDate: row[9] || null,
       dcSentiment: (row[10] || null) as TimelineItem["dcSentiment"],
       createdAt: row[11] || "",
+      time: row[12] || undefined,
     });
   }
 

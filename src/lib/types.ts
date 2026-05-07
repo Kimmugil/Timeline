@@ -30,6 +30,7 @@ export type TimelineItem = {
   id: string;
   gameId: string;
   date: string;
+  time?: string;        // "HH:MM" 형식 (포럼 게시글 공지 시간)
   type: TimelineItemType;
   title: string;
   summary: string;
@@ -53,6 +54,7 @@ export type ForumPost = {
   body: string;
   author: string;
   date: string;
+  time?: string;        // "HH:MM" 형식
   link: string;
   views: number;
   likes: number;

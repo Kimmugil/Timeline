@@ -100,10 +100,17 @@ ${postText}
       .map((p) => `• ${p}`)
       .join("\n");
 
+    // 가장 이른 시간 추출 (공지 시점 표시용)
+    const earliestTime = posts
+      .map((p) => p.time)
+      .filter(Boolean)
+      .sort()[0] || undefined;
+
     return {
       id: `forum-${date}-${rawType}`,
       gameId,
       date,
+      time: earliestTime,
       type,
       title: parsed.title || posts[0]?.title || label,
       summary: parsed.summary || "",
@@ -117,11 +124,13 @@ ${postText}
     };
   } catch (err) {
     console.error(`Forum summarize error (${date} ${rawType}):`, err);
+    const earliestTime = posts.map((p) => p.time).filter(Boolean).sort()[0] || undefined;
     // fallback: AI 실패 시 원본 그대로
     return {
       id: `forum-${date}-${rawType}`,
       gameId,
       date,
+      time: earliestTime,
       type,
       title: posts.length === 1 ? posts[0].title : `${posts.length}개 ${label}`,
       summary: posts.map((p) => p.title).slice(0, 3).join(", "),
