@@ -54,14 +54,14 @@ export async function readForumSheet(sheetId: string): Promise<ForumPost[]> {
     if (rows.length < 2) continue;
 
     const headers = rows[0].map((h: unknown) => String(h).toLowerCase());
-    const idxNum = findCol(headers, "번호");
-    const idxTitle = findCol(headers, "제목");
-    const idxAuthor = findCol(headers, "작성자");
-    const idxDate = findCol(headers, "작성일", "날짜");
-    const idxLink = findCol(headers, "링크");
-    const idxViews = findCol(headers, "조회");
-    const idxLikes = findCol(headers, "추천");
-    const idxBody = findCol(headers, "본문", "내용");
+    const idxNum = findCol(headers, "번호", "thread_id", "id", "no");
+    const idxTitle = findCol(headers, "제목", "title");
+    const idxAuthor = findCol(headers, "작성자", "author");
+    const idxDate = findCol(headers, "작성일", "날짜", "date");
+    const idxLink = findCol(headers, "링크", "url", "link");
+    const idxViews = findCol(headers, "조회", "view_count", "views");
+    const idxLikes = findCol(headers, "추천", "likes");
+    const idxBody = findCol(headers, "본문", "내용", "content", "body");
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as unknown[];
