@@ -11,67 +11,61 @@ export default function DashboardPage() {
 
   async function fetchGames() {
     const res = await fetch("/api/games");
-    if (res.ok) {
-      const data = await res.json();
-      setGames(data.games);
-    }
+    if (res.ok) setGames((await res.json()).games);
     setLoading(false);
   }
 
   useEffect(() => { fetchGames(); }, []);
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <header className="bg-white sticky top-0 z-20" style={{ borderBottom: "2px solid #1A1A1A" }}>
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="bg-gray-900 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🎮</span>
-            <h1 className="text-lg font-black" style={{ color: "var(--text)" }}>게임 이슈 타임라인</h1>
+            <span className="text-base">🎮</span>
+            <span className="text-sm font-semibold text-white">게임 이슈 타임라인</span>
           </div>
           <button
             onClick={() => router.push("/admin")}
-            className="neo-btn text-xs px-3 py-1.5"
-            style={{ background: "var(--bg)" }}
+            className="text-xs text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-gray-800"
           >
             🔑 관리자
           </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[1,2,3].map(i => (
-              <div key={i} className="neo-card h-36 animate-pulse" style={{ background: "#F0EFEC" }} />
+              <div key={i} className="bg-white border border-gray-200 rounded-lg h-36 animate-pulse" />
             ))}
           </div>
         ) : games.length === 0 ? (
-          <div className="neo-card text-center py-20 px-6">
-            <p className="text-2xl mb-3">🎮</p>
-            <p className="font-bold mb-4" style={{ color: "var(--text-2)" }}>등록된 게임이 없습니다.</p>
+          <div className="bg-white border border-gray-200 rounded-lg text-center py-20">
+            <p className="text-gray-400 text-sm mb-4">등록된 게임이 없습니다.</p>
             <button
               onClick={() => router.push("/admin")}
-              className="neo-btn px-6 py-3 text-sm"
-              style={{ background: "var(--accent)" }}
+              className="bg-gray-900 hover:bg-gray-700 text-white text-sm px-5 py-2 rounded-lg transition-colors"
             >
               관리자 패널에서 등록하기
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {games.map((game) => (
               <div
                 key={game.id}
-                className="neo-card neo-card-hover p-5"
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => router.push(`/dashboard/${game.id}`)}
               >
-                <h2 className="text-base font-black mb-0.5" style={{ color: "var(--text)" }}>{game.name}</h2>
-                <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+                <h2 className="text-sm font-semibold text-gray-900 mb-0.5">{game.name}</h2>
+                <p className="text-xs text-gray-400 mb-4">
                   등록일: {new Date(game.created_at).toLocaleDateString("ko-KR")}
                 </p>
 
-                <div className="space-y-1.5 mb-5">
+                <div className="space-y-1.5 mb-4">
                   <StatusDot on={!!game.dc_raw_sheet_id} onText="DC 갤러리 시트 연결됨" offText="DC 갤러리 시트 미연결" />
                   <StatusDot on={!!game.forum_raw_sheet_id} onText="포럼 시트 연결됨" offText="포럼 시트 미연결" />
                   <StatusDot on={!!game.processed_sheet_id} onText="타임라인 시트 생성됨" offText="타임라인 시트 미생성" accent />
@@ -79,8 +73,7 @@ export default function DashboardPage() {
 
                 <button
                   onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/${game.id}`); }}
-                  className="neo-btn w-full py-2.5 text-sm"
-                  style={{ background: "var(--accent)" }}
+                  className="w-full bg-gray-900 hover:bg-gray-700 text-white text-xs py-2 rounded-lg transition-colors"
                 >
                   타임라인 보기 →
                 </button>
@@ -96,10 +89,10 @@ export default function DashboardPage() {
 function StatusDot({ on, onText, offText, accent }: {
   on: boolean; onText: string; offText: string; accent?: boolean;
 }) {
-  const color = on ? (accent ? "#3b82f6" : "#10b981") : "#D1D5DB";
+  const dotColor = on ? (accent ? "bg-blue-400" : "bg-emerald-400") : "bg-gray-300";
   return (
-    <div className="flex items-center gap-2 text-xs" style={{ color: on ? "var(--text-2)" : "var(--text-muted)" }}>
-      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+    <div className={`flex items-center gap-2 text-xs ${on ? "text-gray-600" : "text-gray-400"}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
       {on ? onText : offText}
     </div>
   );

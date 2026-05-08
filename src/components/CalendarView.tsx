@@ -4,17 +4,17 @@ import { TimelineItem, TimelineItemType } from "@/lib/types";
 
 const TYPE_COLORS: Record<TimelineItemType, string> = {
   official_patch:  "#3b82f6",
-  official_event:  "#059669",
-  official_notice: "#d97706",
-  user_issue:      "#dc2626",
-  weekly_summary:  "#7c3aed",
-  event_reaction:  "#6B7280",
+  official_event:  "#10b981",
+  official_notice: "#f59e0b",
+  user_issue:      "#ef4444",
+  weekly_summary:  "#8b5cf6",
+  event_reaction:  "#9ca3af",
 };
 
 const LEGEND = [
   { label: "패치/이벤트/공지", color: "#3b82f6" },
-  { label: "유저 이슈",        color: "#dc2626" },
-  { label: "주간 요약",        color: "#7c3aed" },
+  { label: "유저 이슈",        color: "#ef4444" },
+  { label: "주간 요약",        color: "#8b5cf6" },
 ];
 
 type Props = {
@@ -78,43 +78,37 @@ export default function CalendarView({
   }
 
   return (
-    <div className="neo-card overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* 월 헤더 */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "2px solid #1A1A1A" }}>
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
         <button
           onClick={() => navMonth(-1)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg font-black text-lg transition-colors hover:bg-[#F0EFEC]"
-          style={{ color: "var(--text)" }}
+          className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors text-base"
         >
           ‹
         </button>
         <div className="text-center">
-          <p className="font-black text-sm" style={{ color: "var(--text)" }}>
-            {year}년 {month}월
-          </p>
+          <p className="text-sm font-semibold text-gray-800">{year}년 {month}월</p>
           {eventCountInMonth > 0 && (
-            <p className="text-[10px] font-bold" style={{ color: "var(--text-muted)" }}>
-              이벤트 {eventCountInMonth}건
-            </p>
+            <p className="text-[10px] text-gray-400">이벤트 {eventCountInMonth}건</p>
           )}
         </div>
         <button
           onClick={() => navMonth(1)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg font-black text-lg transition-colors hover:bg-[#F0EFEC]"
-          style={{ color: "var(--text)" }}
+          className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors text-base"
         >
           ›
         </button>
       </div>
 
-      <div className="p-3">
+      <div className="p-2.5">
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 mb-1">
           {DOW.map((d, i) => (
             <div
               key={d}
-              className="text-center text-[10px] font-black py-1"
-              style={{ color: i === 5 ? "#3b82f6" : i === 6 ? "#dc2626" : "var(--text-muted)" }}
+              className={`text-center text-[11px] font-medium py-1
+                ${i === 5 ? "text-blue-400" : i === 6 ? "text-red-400" : "text-gray-400"}`}
             >
               {d}
             </div>
@@ -138,25 +132,21 @@ export default function CalendarView({
                 key={date}
                 onClick={() => hasEvt && onDayClick(date)}
                 disabled={!hasEvt}
-                className="relative flex flex-col items-center justify-center rounded-lg py-1.5 transition-all"
-                style={{
-                  background: isSel ? "#1A1A1A" : "transparent",
-                  outline: isTod && !isSel ? "2px solid #FFD600" : "none",
-                  outlineOffset: "-2px",
-                  opacity: !hasEvt ? 0.35 : 1,
-                  cursor: hasEvt ? "pointer" : "default",
-                }}
+                className={`
+                  relative flex flex-col items-center justify-center
+                  rounded py-1.5 transition-colors
+                  ${isSel ? "bg-gray-900 text-white"
+                    : hasEvt ? "hover:bg-gray-100 cursor-pointer"
+                    : "cursor-default opacity-30"}
+                  ${isTod && !isSel ? "ring-1 ring-blue-300 ring-inset" : ""}
+                `}
               >
-                <span
-                  className="text-xs leading-none font-bold"
-                  style={{
-                    color: isSel ? "#FFD600"
-                      : isTod ? "#1A1A1A"
-                      : dow === 5 ? "#3b82f6"
-                      : dow === 6 ? "#dc2626"
-                      : "var(--text)",
-                    fontWeight: isTod ? 900 : 700,
-                  }}
+                <span className={`text-[11px] leading-none font-semibold
+                  ${isSel ? "text-white"
+                    : isTod ? "text-blue-600"
+                    : dow === 5 ? "text-blue-500"
+                    : dow === 6 ? "text-red-500"
+                    : "text-gray-700"}`}
                 >
                   {day}
                 </span>
@@ -166,7 +156,7 @@ export default function CalendarView({
                       <span
                         key={ci}
                         className="w-1 h-1 rounded-full"
-                        style={{ backgroundColor: isSel ? "#FFD600" : color }}
+                        style={{ backgroundColor: isSel ? "rgba(255,255,255,0.7)" : color }}
                       />
                     ))}
                   </div>
@@ -178,9 +168,9 @@ export default function CalendarView({
       </div>
 
       {/* 범례 */}
-      <div className="px-4 py-2.5 flex flex-wrap gap-3" style={{ borderTop: "2px solid #E2E8F0" }}>
+      <div className="px-3 py-2 border-t border-gray-100 flex flex-wrap gap-3">
         {LEGEND.map((l) => (
-          <div key={l.label} className="flex items-center gap-1 text-[10px] font-bold" style={{ color: "var(--text-muted)" }}>
+          <div key={l.label} className="flex items-center gap-1 text-[10px] text-gray-400">
             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
             {l.label}
           </div>

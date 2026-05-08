@@ -6,12 +6,12 @@ import { GameConfig, TimelineItem, TimelineItemType } from "@/lib/types";
 import TimelineCards from "@/components/TimelineCards";
 import CalendarView from "@/components/CalendarView";
 
-const BADGE_CONFIG: { type: TimelineItemType; label: string; color: string; bg: string }[] = [
-  { type: "official_patch",  label: "패치노트",    color: "#3b82f6", bg: "#eff6ff" },
-  { type: "official_event",  label: "공식 이벤트", color: "#059669", bg: "#ecfdf5" },
-  { type: "official_notice", label: "공지사항",    color: "#d97706", bg: "#fffbeb" },
-  { type: "user_issue",      label: "유저 이슈",   color: "#dc2626", bg: "#fef2f2" },
-  { type: "event_reaction",  label: "이벤트 반응", color: "#6B7280", bg: "#F3F4F6" },
+const BADGE_CONFIG: { type: TimelineItemType; label: string; color: string }[] = [
+  { type: "official_patch",  label: "패치노트",    color: "bg-blue-50 text-blue-700 border-blue-200" },
+  { type: "official_event",  label: "공식 이벤트", color: "bg-green-50 text-green-700 border-green-200" },
+  { type: "official_notice", label: "공지사항",    color: "bg-amber-50 text-amber-700 border-amber-200" },
+  { type: "user_issue",      label: "유저 이슈",   color: "bg-red-50 text-red-600 border-red-200" },
+  { type: "event_reaction",  label: "이벤트 반응", color: "bg-gray-100 text-gray-600 border-gray-200" },
 ];
 
 function EventSummaryBar({ items }: { items: TimelineItem[] }) {
@@ -24,23 +24,19 @@ function EventSummaryBar({ items }: { items: TimelineItem[] }) {
   if (badges.length === 0 && totalDcPosts === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-1.5 items-center">
       {badges.map((b) => (
-        <span
-          key={b.type}
-          className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-black"
-          style={{ border: `2px solid ${b.color}`, color: b.color, background: b.bg }}
-        >
-          <span>{b.count}</span>{b.label}
+        <span key={b.type}
+          className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full border font-medium ${b.color}`}>
+          <span className="font-semibold">{b.count}</span>{b.label}
         </span>
       ))}
       {totalDcPosts > 0 && (
-        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-black"
-          style={{ border: "2px solid #6366f1", color: "#6366f1", background: "#eef2ff" }}>
+        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-600 font-medium">
           DC {totalDcPosts}건 분석
         </span>
       )}
-      <span className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
+      <span className="text-xs text-gray-400">
         총 {items.filter((i) => i.type !== "weekly_summary").length}건
       </span>
     </div>
@@ -98,35 +94,30 @@ export default function GameTimelinePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
-        <div className="neo-card px-8 py-6 flex items-center gap-3">
-          <span className="text-xl animate-spin">⏳</span>
-          <span className="font-bold" style={{ color: "var(--text-2)" }}>로딩 중...</span>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400 text-sm">로딩 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-      {/* ── 헤더 ── */}
-      <header className="bg-white sticky top-0 z-20" style={{ borderBottom: "2px solid #1A1A1A" }}>
-        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center gap-3 flex-wrap">
+    <div className="min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <header className="bg-gray-900 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3">
           <button
             onClick={() => router.push("/dashboard")}
-            className="neo-btn px-3 py-1.5 text-xs"
-            style={{ background: "var(--bg)" }}
+            className="text-gray-400 hover:text-white transition-colors text-xs"
           >
             ← 목록
           </button>
-          <h1 className="text-base font-black" style={{ color: "var(--text)" }}>
+          <span className="border-l border-gray-700 pl-3 text-sm font-semibold text-white">
             {game?.name || "게임"} 타임라인
-          </h1>
+          </span>
           <div className="ml-auto">
             <button
               onClick={() => router.push("/admin")}
-              className="neo-btn text-xs px-3 py-1.5"
-              style={{ background: "var(--bg)" }}
+              className="text-xs text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded hover:bg-gray-800"
             >
               🔑 관리자
             </button>
@@ -134,12 +125,12 @@ export default function GameTimelinePage() {
         </div>
       </header>
 
-      {/* ── 메인 ── */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
-        <div className="flex flex-col lg:flex-row gap-5 items-start">
+      {/* 메인 */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
 
-          {/* ── 왼쪽: 캘린더 ── */}
-          <div className="w-full lg:w-[260px] shrink-0 lg:sticky lg:top-[61px]">
+          {/* 캘린더 */}
+          <div className="w-full lg:w-[256px] shrink-0 lg:sticky lg:top-[49px]">
             <CalendarView
               timelineItems={timelineItems}
               currentMonth={currentMonth}
@@ -149,20 +140,17 @@ export default function GameTimelinePage() {
             />
           </div>
 
-          {/* ── 오른쪽: 요약 + 카드 ── */}
-          <div className="flex-1 min-w-0 space-y-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="font-black text-base" style={{ color: "var(--text)" }}>
-                  {selectedDate
-                    ? `📅 ${selectedDate}`
-                    : `${currentMonth.replace("-", "년 ")}월`}
+          {/* 카드 영역 */}
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {selectedDate ? `📅 ${selectedDate}` : `${currentMonth.replace("-", "년 ")}월`}
                 </h2>
                 {selectedDate && (
                   <button
                     onClick={() => setSelectedDate(null)}
-                    className="neo-btn text-xs px-2.5 py-1"
-                    style={{ background: "var(--bg)" }}
+                    className="text-xs text-blue-500 hover:underline"
                   >
                     ← 월 전체 보기
                   </button>
