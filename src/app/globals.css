@@ -4,38 +4,107 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── 디자인 토큰 ── */
 :root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --border: #e2e8f0;
+  --bg:          #FAFAFA;
+  --surface:     #FFFFFF;
+  --border:      #1A1A1A;
+  --text:        #1A1A1A;
+  --text-2:      #4A4A4A;
+  --text-muted:  #9CA3AF;
+  --accent:      #FFD600;
+  --shadow:      2px 2px 0px 0px #1A1A1A;
+  --shadow-lg:   4px 4px 0px 0px #1A1A1A;
 }
 
 body {
   background-color: var(--bg);
-  color: #0f172a;
+  color: var(--text);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* 날짜 인풋 - Chrome 한국어 로케일 빈 () 제거 */
-input[type="date"]::-webkit-datetime-edit-day-field,
-input[type="date"]::-webkit-datetime-edit-month-field,
-input[type="date"]::-webkit-datetime-edit-year-field {
-  display: inline;
+/* ── 포커스 ── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
+
+/* ── 네오 카드 ── */
+.neo-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.neo-card-hover {
+  transition: box-shadow 0.1s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+.neo-card-hover:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translate(-1px, -1px);
+}
+
+/* ── 네오 버튼 ── */
+.neo-btn {
+  border: 2px solid var(--border);
+  border-radius: 9999px;
+  font-weight: 800;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.1s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.neo-btn:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px 0px var(--border);
+}
+.neo-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.neo-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 네오 입력 ── */
+.neo-input {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
+}
+.neo-input:focus {
+  outline: none;
+  box-shadow: 3px 3px 0px 0px var(--border);
+  transform: translate(-1px, -1px);
+}
+
+/* ── 날짜 인풋 Chrome 한국어 로케일 빈 () 제거 ── */
 input[type="date"]::-webkit-datetime-edit-fields-wrapper {
   overflow: hidden;
   max-width: 6.5rem;
 }
 
-/* 스크롤바 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── 섹션 레이블 ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
+
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
