@@ -34,14 +34,12 @@ body {
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: 16px;
-  box-shadow: var(--shadow);
 }
 .neo-card-hover {
-  transition: box-shadow 0.1s ease, transform 0.1s ease;
+  transition: transform 0.1s ease;
   cursor: pointer;
 }
 .neo-card-hover:hover {
-  box-shadow: var(--shadow-lg);
   transform: translate(-1px, -1px);
 }
 
