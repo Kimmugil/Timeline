@@ -495,9 +495,9 @@ export async function generateTimeline(
   for (const eventDate of eventDates) {
     const eventsOnDate = filteredForum.filter((p) => p.date === eventDate);
     // 반응은 공지 당일 이후에만 가능 — 공지 이전 게시글은 반응 아님
-    const from3 = eventDate;
-    const to3 = format(addDays(parseISO(eventDate), 3), "yyyy-MM-dd");
-    const nearbyDc = dcPosts.filter((p) => p.date >= from3 && p.date <= to3);
+    const from7 = eventDate;
+    const to7 = format(addDays(parseISO(eventDate), 7), "yyyy-MM-dd");
+    const nearbyDc = dcPosts.filter((p) => p.date >= from7 && p.date <= to7);
 
     const item = await analyzeEventReaction(game.name, eventDate, eventsOnDate, nearbyDc, game.id);
     if (item) reactionItems.push(item);

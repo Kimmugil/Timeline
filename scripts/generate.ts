@@ -29,9 +29,9 @@ async function main() {
     await updateGameProcessedSheet(game.id, processedSheetId);
   }
 
-  // DC 게시글은 toDate + 3일까지 읽음:
+  // DC 게시글은 toDate + 7일까지 읽음:
   // 분석 기간 마지막 날 공지에 대한 유저 반응이 며칠 뒤에 나올 수 있기 때문
-  const dcToDate = format(addDays(parseISO(toDate), 3), "yyyy-MM-dd");
+  const dcToDate = format(addDays(parseISO(toDate), 7), "yyyy-MM-dd");
 
   const [forumPosts, dcPosts] = await Promise.all([
     game.forum_raw_sheet_id
