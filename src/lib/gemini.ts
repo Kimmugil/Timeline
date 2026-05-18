@@ -359,7 +359,9 @@ export async function detectUserIssues(
   dcPosts: DcPost[],
   gameId: string
 ): Promise<TimelineItem[]> {
-  const highEngagement = dcPosts.filter(
+  // 날짜 범위 방어 필터: 호출 측에서 이미 필터했더라도 재확인
+  const periodPosts = dcPosts.filter((p) => p.date >= fromDate && p.date <= toDate);
+  const highEngagement = periodPosts.filter(
     (p) => p.views >= 300 || p.comments >= 20 || p.likes >= 5
   );
   if (highEngagement.length < 3) return [];
@@ -423,10 +425,16 @@ ${formatDcPosts(sortedPosts, 50)}
         .slice(0, 5)
         .map((p) => ({ url: p.url, title: p.title, views: p.views, comments: p.comments, likes: p.likes }));
 
+      // start_date가 분석 기간 밖이면 fromDate로 클램프 (날짜 오염 방지)
+      const issueDate =
+        issue.start_date && issue.start_date >= fromDate && issue.start_date <= toDate
+          ? issue.start_date
+          : fromDate;
+
       return {
-        id: `issue-${issue.start_date || fromDate}-${Math.random().toString(36).slice(2, 8)}`,
+        id: `issue-${issueDate}-${Math.random().toString(36).slice(2, 8)}`,
         gameId,
-        date: issue.start_date || fromDate,
+        date: issueDate,
         type: "user_issue" as TimelineItem["type"],
         title: issue.title,
         summary: issue.summary,
@@ -495,8 +503,10 @@ export async function generateTimeline(
     if (item) reactionItems.push(item);
   }
 
-  // 3. 주간 요약
+  // 3. 주간 요약 + 유저 이슈 감지 (동일한 주 단위로 묶어서 처리)
   const weeklyItems: TimelineItem[] = [];
+  const issueItems: TimelineItem[] = [];
+
   if (dcPosts.length > 0) {
     const weeks = eachWeekOfInterval(
       { start: parseISO(fromDate), end: parseISO(toDate) },
@@ -511,13 +521,17 @@ export async function generateTimeline(
       const weekDc = dcPosts.filter((p) => p.date >= wStart && p.date <= wEnd);
       const weekForum = filteredForum.filter((p) => p.date >= wStart && p.date <= wEnd);
 
-      const item = await analyzeWeeklySummary(game.name, wStart, wEnd, weekDc, weekForum, game.id);
-      if (item) weeklyItems.push(item);
+      // 주간 요약
+      const summaryItem = await analyzeWeeklySummary(game.name, wStart, wEnd, weekDc, weekForum, game.id);
+      if (summaryItem) weeklyItems.push(summaryItem);
+
+      // 유저 이슈 감지: 해당 주의 게시글만 넘겨서 날짜 오염 방지
+      const weekIssues = await detectUserIssues(game.name, wStart, wEnd, weekDc, game.id);
+      issueItems.push(...weekIssues);
     }
   }
 
-  // 4. 유저 이슈 감지
-  const issueItems = await detectUserIssues(game.name, fromDate, toDate, dcPosts, game.id);
+  // (issueItems는 위 루프에서 이미 채워짐 — 별도 호출 불필요)
 
   return [...officialItems, ...reactionItems, ...weeklyItems, ...issueItems].sort(
     (a, b) => a.date.localeCompare(b.date)
