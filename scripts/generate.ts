@@ -2,6 +2,7 @@ import { getGameById, updateGameProcessedSheet } from "../src/lib/admin-sheet";
 import { readForumSheet, readDcSheet, writeTimelineToSheet } from "../src/lib/sheets";
 import { generateTimeline } from "../src/lib/gemini";
 import { createOrGetProcessedSheet } from "../src/lib/gas";
+import { addDays, parseISO, format } from "date-fns";
 
 const gameId = process.env.GAME_ID!;
 const fromDate = process.env.FROM_DATE!;
@@ -28,6 +29,10 @@ async function main() {
     await updateGameProcessedSheet(game.id, processedSheetId);
   }
 
+  // DC 게시글은 toDate + 3일까지 읽음:
+  // 분석 기간 마지막 날 공지에 대한 유저 반응이 며칠 뒤에 나올 수 있기 때문
+  const dcToDate = format(addDays(parseISO(toDate), 3), "yyyy-MM-dd");
+
   const [forumPosts, dcPosts] = await Promise.all([
     game.forum_raw_sheet_id
       ? readForumSheet(game.forum_raw_sheet_id)
@@ -37,7 +42,7 @@ async function main() {
           minViews: 50,
           minComments: 3,
           fromDate,
-          toDate,
+          toDate: dcToDate,
         })
       : Promise.resolve([]),
   ]);
