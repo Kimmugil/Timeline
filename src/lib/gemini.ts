@@ -6,7 +6,6 @@ import {
   eachWeekOfInterval,
   endOfWeek,
   addDays,
-  subDays,
 } from "date-fns";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -495,7 +494,8 @@ export async function generateTimeline(
 
   for (const eventDate of eventDates) {
     const eventsOnDate = filteredForum.filter((p) => p.date === eventDate);
-    const from3 = format(subDays(parseISO(eventDate), 3), "yyyy-MM-dd");
+    // 반응은 공지 당일 이후에만 가능 — 공지 이전 게시글은 반응 아님
+    const from3 = eventDate;
     const to3 = format(addDays(parseISO(eventDate), 3), "yyyy-MM-dd");
     const nearbyDc = dcPosts.filter((p) => p.date >= from3 && p.date <= to3);
 
