@@ -42,6 +42,7 @@ export type TimelineItem = {
     avgComments?: number;
     totalEngagement?: number;
     postCount?: number;
+    totalPostCount?: number;  // 반응 창 내 전체 DC 게시글 수 (필터 전)
   } | null;
   relatedEventDate: string | null;
   dcSentiment: "positive" | "negative" | "neutral" | "mixed" | null;

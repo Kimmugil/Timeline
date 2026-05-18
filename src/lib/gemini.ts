@@ -337,6 +337,7 @@ ${formatDcPosts(relevantPosts, 30)}
       evidenceCount: relevantPosts.length,
       evidenceMetrics: {
         postCount: relevantPosts.length,
+        totalPostCount: dcPosts.length,   // 반응 창(공지일~+7일) 내 전체 DC 게시글 수
         avgViews: Math.round(relevantPosts.reduce((s, p) => s + p.views, 0) / relevantPosts.length),
         avgComments: Math.round(relevantPosts.reduce((s, p) => s + p.comments, 0) / relevantPosts.length),
       },

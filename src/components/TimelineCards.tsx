@@ -145,6 +145,11 @@ function UserRow({ item }: { item: TimelineItem }) {
               <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full font-medium">
                 DC 게시글 {item.evidenceCount}건
               </span>
+              {item.evidenceMetrics?.totalPostCount != null && (
+                <span className="text-[11px] text-gray-400">
+                  기간 총 {item.evidenceMetrics.totalPostCount}건
+                </span>
+              )}
               {item.evidenceMetrics?.avgViews && (
                 <span className="text-[11px] text-gray-400">평균 조회 {item.evidenceMetrics.avgViews.toLocaleString()}</span>
               )}
@@ -283,6 +288,8 @@ function SingleDateCards({ items }: { items: TimelineItem[] }) {
               {item.evidenceCount > 0 && (
                 <span className="ml-auto text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
                   DC {item.evidenceCount}건
+                  {item.evidenceMetrics?.totalPostCount != null &&
+                    ` / 총 ${item.evidenceMetrics.totalPostCount}건`}
                 </span>
               )}
             </div>
